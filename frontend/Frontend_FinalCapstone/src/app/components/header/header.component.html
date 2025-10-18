@@ -1,0 +1,71 @@
+<header>
+    <nav class="navbar navbar-expand-lg navbar-light bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="#">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="50" height="50">
+                    <circle cx="50" cy="50" r="45" fill="rgb(240, 101, 197)"/>
+                    <circle cx="50" cy="50" r="35" fill="rgb(127, 68, 255)"/>
+                </svg>
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
+                aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link" 
+                          [ngClass]="{ 'active': activeNavItem === 0 }"
+                          (click)="setActiveNavItem(0, '/')"
+                          style="cursor: pointer;">Trang chủ</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" 
+                          [ngClass]="{ 'active': activeNavItem === 1 }"
+                          (click)="setActiveNavItem(1, '/bookings')"
+                          style="cursor: pointer;">
+                            <i class="fas fa-calendar-check icon"></i>
+                            Bookings
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" 
+                            [ngClass]="{ 'active': activeNavItem === 2 }"
+                            (click)="setActiveNavItem(2, '/orders')"
+                            style="cursor: pointer;">
+                            <i class="fas fa-heart icon"></i>
+                            Wishlist
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <!-- When user is logged in: Show avatar and username -->
+                        <ng-container *ngIf="isLoggedIn && userResponse">
+                          <a class="nav-link user-profile-link" 
+                             [ngClass]="{ 'active': activeNavItem === 3 }"
+                             (click)="navigateToProfile()"
+                             style="cursor: pointer;">
+                            <img 
+                              [src]="avatarUrl" 
+                              (error)="onAvatarError()"
+                              alt="User Avatar"
+                              class="user-avatar"
+                              onerror="this.src='https://via.placeholder.com/40?text=User'"
+                            />
+                            <span class="username-text">{{ userResponse.username }}</span>
+                          </a>
+                        </ng-container>
+                        
+                        <!-- When user is NOT logged in: Show Login button -->
+                        <ng-container *ngIf="!isLoggedIn">
+                          <a class="nav-link" 
+                             (click)="setActiveNavItem(-1, '/login')"
+                             style="cursor: pointer;">
+                            <i class="fas fa-sign-in-alt"></i> Đăng nhập
+                          </a>
+                        </ng-container>
+                      </li>                                                                
+                </ul>
+            </div>
+        </div>
+    </nav>
+</header>

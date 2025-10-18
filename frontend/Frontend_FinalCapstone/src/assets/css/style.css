@@ -1,0 +1,160 @@
+/*
+Theme Name: Panagea v.2.8
+Theme URI: http://www.ansonika.com/panagea/
+Author: Ansonika
+Author URI: http://themeforest.net/user/Ansonika/
+
+[Table of contents] 
+
+1. SITE STRUCTURE and TYPOGRAPHY
+- 1.1 Typography
+- 1.2 Buttons
+- 1.3 Structure
+
+2. CONTENT
+- 2.1 Home
+- 2.2 About
+- 2.3 Listing
+- 2.4 Detail page
+- 2.5 Login/register
+- 2.6 Map styles
+- 2.7 Contacts
+- 2.8 404 page 
+- 2.9 Cart section
+- 2.10 Media Gallery
+- 2.11 Faq
+- 2.12 Adventure
+- 2.13 Home AirBnb
+- 2.14 Half screen map
+- 2.15 Autocomplete Address Search
+- 2.16 OpenStreet Map
+- 2.17 Parallax Video Background
+- 2.18 Other Headers
+- 2.19 Home Categories Hover effect
+- 2.20 Home Search Radio categories
+
+3. COMMON
+- 3.1 Misc
+- 3.2 Accordion
+- 3.3 List
+- 3.4 Spacing
+- 3.5 Block reveal
+- 3.6 Cookie bar
+- 3.7 Sing In Modal
+- 3.8 Input Switcher
+- 3.9 Datepicker
+- 3.10 Modal Generic
+- 3.11 Others pricing tables
+- 3.12 Styles Switcher
+- 3.13 Time picker
+*/
+
+/*============================================================================================*/
+/* 1.  SITE STRUCTURE and TYPOGRAPHY */
+/*============================================================================================*/
+/* MAIN NAVIGATION */
+/* All styles for screen size over 992px*/
+@media only screen and (min-width: 992px) {/* Lines 57-182 omitted */}
+/* Submenu 2nd level right */
+.main-menu ul ul.second_level_right {/* Lines 185-187 omitted */}
+.main-menu ul ul.second_level_right:before {/* Lines 189-191 omitted */}
+
+/* Submenu 3rd level */
+.main-menu ul ul li span a {/* Lines 195-196 omitted */}
+.main-menu ul ul li span a:hover {/* Lines 198-201 omitted */}
+.main-menu ul ul li span a:after {/* Lines 203-209 omitted */}
+
+.main-menu ul ul ul {/* Lines 212-223 omitted */}
+.main-menu ul ul ul.third_level_left {/* Lines 225-227 omitted */}
+.main-menu ul ul ul li a {/* Lines 229-230 omitted */}
+.main-menu ul ul ul li:last-child a {/* Lines 232-233 omitted */}
+
+/* Arrows top 3rd level*/
+.main-menu ul ul ul:before {/* Lines 237-239 omitted */}
+
+/* All styles for screen size under 991px */
+@media only screen and (max-width: 991px) {/* Lines 243-261 omitted */}
+#menu.fake_menu {/* Lines 263-265 omitted */}
+
+/*-------- Preloader --------*/
+#preloader {/* Lines 269-278 omitted */}
+
+[data-loader=circle-side] {/* Lines 281-294 omitted */}
+@keyframes circle {/* Lines 296-302 omitted */}
+/*-------- 1.1 Typography --------*/
+/* rem reference
+10px = 0.625rem
+12px = 0.75rem
+14px = 0.875rem
+16px = 1rem (base)
+18px = 1.125rem
+20px = 1.25rem
+24px = 1.5rem
+30px = 1.875rem
+32px = 2rem
+*/
+html * {/* Lines 316-318 omitted */}
+
+body {/* Lines 321-326 omitted */}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {/* Lines 334-335 omitted */}
+
+p {/* Lines 338-339 omitted */}
+
+strong {/* Lines 342-343 omitted */}
+
+label {/* Lines 346-348 omitted */}
+
+hr {/* Lines 351-354 omitted */}
+hr.large {/* Lines 356-359 omitted */}
+@media (max-width: 991px) {/* Lines 361-364 omitted */}
+@media (max-width: 767px) {/* Lines 366-369 omitted */}
+
+ul, ol {/* Lines 372-375 omitted */}
+
+.main_title {/* Lines 378-381 omitted */}
+
+.main_title span {/* Lines 384-395 omitted */}
+
+.main_title.animated span {/* Lines 398-400 omitted */}
+
+.main_title_2 {/* Lines 403-406 omitted */}
+.main_title_2 span {/* Lines 408-413 omitted */}
+.main_title_2 span em {/* Lines 415-420 omitted */}
+@media (max-width: 767px) {/* Lines 422-425 omitted */}
+.main_title_2 h2 {/* Lines 427-428 omitted */}
+@media (max-width: 767px) {/* Lines 430-434 omitted */}
+.main_title_2 h3 {/* Lines 436-437 omitted */}
+@media (max-width: 767px) {/* Lines 439-443 omitted */}
+.main_title_2 p {/* Lines 445-449 omitted */}
+@media (max-width: 767px) {/* Lines 451-455 omitted */}
+
+.main_title_3 {/* Lines 458-460 omitted */}
+.main_title_3 span {/* Lines 462-466 omitted */}
+.main_title_3 span em {/* Lines 468-472 omitted */}
+@media (max-width: 767px) {/* Lines 474-477 omitted */}
+.main_title_3 h2, .main_title_3 h3 {/* Lines 479-482 omitted */}
+@media (max-width: 767px) {/* Lines 484-488 omitted */}
+.main_title_3 p {/* Lines 490-494 omitted */}
+
+/** Layes slider typography ab buttons **/
+h3.slide_typo {/* Lines 498-503 omitted */}
+
+.slide_typo_2 {/* Lines 506-511 omitted */}
+
+.ls-l a.btn_1 {/* Lines 514-515 omitted */}
+@media (max-width: 767px) {/* Lines 517-521 omitted */}
+
+/*General links color*/
+a {/* Lines 525-529 omitted */}
+a:hover, a:focus {/* Lines 531-534 omitted */}
+
+/*-------- 1.2 Buttons --------*/
+a.btn_1,
+.btn_1 {/* Lines 539-553 omitted */}
+/* ... rest omitted for brevity as original file */

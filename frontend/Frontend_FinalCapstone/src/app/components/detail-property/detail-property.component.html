@@ -1,0 +1,454 @@
+<app-header></app-header>
+
+<div *ngIf="loading" class="loading-container">
+  <div class="spinner-border text-primary" role="status">
+    <span class="visually-hidden">Loading...</span>
+  </div>
+</div>
+
+<div *ngIf="errorMsg" class="alert alert-danger m-4">
+  {{ errorMsg }}
+</div>
+
+<main *ngIf="property && !loading">
+  <!-- Hero Section with Images -->
+  <section class="hero_in hotels_detail" [style.background-image]="'url(' + getCurrentImage() + ')'">
+    <div class="wrapper">
+      <div class="container">
+        <h1 class="fadeInUp"><span>{{ property.name }}</span></h1>
+      </div>
+    </div>
+  </section>
+
+  <!-- Secondary Navigation -->
+  <div class="bg_color_1">
+    <nav class="secondary_nav sticky_horizontal">
+      <div class="container">
+        <ul class="clearfix">
+          <li><a (click)="scrollToSection('description', $event)" class="active">Description</a></li>
+          <li><a (click)="scrollToSection('amenities', $event)">Amenities</a></li>
+          <li><a (click)="scrollToSection('facilities', $event)">Facilities</a></li>
+          <li><a (click)="scrollToSection('reviews', $event)">Reviews</a></li>
+          <li><a (click)="scrollToSection('sidebar', $event)">Booking</a></li>
+        </ul>
+      </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="container margin_60_35">
+      <div class="row">
+        <!-- Left Column - Property Details -->
+        <div class="col-lg-8">
+          
+          <!-- Description Section -->
+          <section id="description">
+            <h2>Về căn hộ của {{ property.hostName }}</h2>
+            <p class="lead">{{ property.locationName }}, {{ property.cityName }}</p>
+            <p>{{ property.description }}</p>
+            
+            <div class="row mt-4">
+              <div class="col-md-3 col-6">
+                <div class="property-feature">
+                  <i class="bi bi-door-open"></i>
+                  <span>{{ property.numberOfBedrooms }} Phòng ngủ</span>
+                </div>
+              </div>
+              <div class="col-md-3 col-6">
+                <div class="property-feature">
+                  <i class="bi bi-droplet"></i>
+                  <span>{{ property.numberOfBathrooms }} Phòng tắm</span>
+                </div>
+              </div>
+              <div class="col-md-3 col-6">
+                <div class="property-feature">
+                  <i class="bi bi-people"></i>
+                  <span>{{ property.maxAdults }} Người lớn</span>
+                </div>
+              </div>
+              <div class="col-md-3 col-6">
+                <div class="property-feature">
+                  <i class="bi bi-star-fill"></i>
+                  <span>{{ property.rating }}/5 {{ getRatingLabel(property.rating) }}</span>
+                </div>
+              </div>
+            </div>
+          </section>
+          
+          <hr>
+          
+          <!-- Amenities Section -->
+          <section id="amenities">
+            <h3>Tiện ích nổi bật</h3>
+            <div class="row" *ngIf="property.amenities && property.amenities.length > 0">
+              <div class="col-md-6 col-12" *ngFor="let amenity of property.amenities">
+                <div class="amenity-item">
+                  <div class="amenity-icon">
+                    <img [src]="getIconUrl(amenity.iconUrl)" 
+                         [alt]="amenity.amenityName"
+                         onerror="this.style.display='none'">
+                  </div>
+                  <div>
+                    <strong>{{ amenity.amenityName }}</strong>
+                    <p class="text-muted small mb-0">{{ amenity.description }}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <p *ngIf="!property.amenities || property.amenities.length === 0" class="text-muted">
+              Không có thông tin tiện ích
+            </p>
+          </section>
+          
+          <hr>
+
+          <!-- Facilities Section -->
+          <section id="facilities">
+            <h3>Các thiết bị có sẵn</h3>
+            <div class="row" *ngIf="property.facilities && property.facilities.length > 0">
+              <div class="col-md-6 col-12" *ngFor="let facility of property.facilities">
+                <div class="facility-item">
+                  <div class="facility-icon">
+                    <img [src]="getIconUrl(facility.iconUrl)" 
+                         [alt]="facility.facilityName"
+                         onerror="this.style.display='none'">
+                  </div>
+                  <div class="flex-grow-1">
+                    <div class="d-flex justify-content-between align-items-start">
+                      <div>
+                        <strong>{{ facility.facilityName }}</strong>
+                        <p class="text-muted small mb-0">Số lượng: {{ facility.quantity }}</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <p *ngIf="!property.facilities || property.facilities.length === 0" class="text-muted">
+              Không có thông tin thiết bị
+            </p>
+            
+            <div class="note mt-4 p-3" style="background-color: #2d3e50; border-left: 4px solid #60a5fa;">
+              <h5 class="mb-2" style="color: #ffffff;">Lưu ý quan trọng về việc sử dụng tài sản</h5>
+              <p class="mb-0" style="color: #cbd5e0;">
+                Để đảm bảo trải nghiệm tốt nhất cho tất cả khách hàng và duy trì chất lượng dịch vụ, 
+                chúng tôi trân trọng đề nghị Quý khách vui lòng bảo quản cẩn thận các trang thiết bị 
+                và vật dụng đã được cung cấp trong phòng. Trong trường hợp xảy ra hư hỏng hoặc mất mát 
+                do quá trình sử dụng, chi phí sửa chữa hoặc thay thế tương đương với giá trị của vật dụng 
+                tại thời điểm hiện tại sẽ được áp dụng.
+              </p>
+            </div>
+          </section>
+          
+          <hr>
+          
+          <!-- Reviews Section -->
+          <section id="reviews">
+            <h2>Reviews</h2>
+            
+            <!-- Review Summary -->
+            <div class="row" *ngIf="property.reviews && property.reviews.length > 0">
+              <div class="col-lg-4">
+                <div class="box_general write_review text-center">
+                  <h1 class="rating-score">{{ getAverageRatingOutOf5().toFixed(1) }}</h1>
+                  <h4 class="rating-label" [ngClass]="getRatingClass(getAverageRating())">
+                    {{ getRatingLabel(getAverageRating()) }}
+                  </h4>
+                  <p class="text-muted">Based on {{ property.reviews.length }} reviews</p>
+                </div>
+              </div>
+              
+              <div class="col-lg-8">
+                <div class="rating-bars">
+                  <div class="rating-bar" *ngFor="let star of [5, 4, 3, 2, 1]">
+                    <span class="rating-label">{{ star }} stars</span>
+                    <div class="progress">
+                      <div class="progress-bar" 
+                           [ngClass]="'bg-rating-' + star"
+                           [style.width.%]="getRatingDistribution(star)">
+                      </div>
+                    </div>
+                    <span class="rating-percent">{{ getRatingDistribution(star).toFixed(0) }}%</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <hr>
+            
+            <!-- Reviews List -->
+            <div class="reviews-container" *ngIf="displayedReviews && displayedReviews.length > 0">
+              <div class="review-item" *ngFor="let review of displayedReviews">
+                <div class="review-header">
+                  <div class="review-avatar">
+                    <i class="bi bi-person-circle"></i>
+                  </div>
+                  <div class="review-info flex-grow-1">
+                    <div class="d-flex justify-content-between align-items-start">
+                      <div>
+                        <strong>{{ review.username }}</strong>
+                        <p class="text-muted small mb-0">{{ formatDate(review.reviewDate) }}</p>
+                      </div>
+                      <div class="review-rating-stars">
+                        <span *ngFor="let star of getStarArray(review.rating)" 
+                              class="bi" 
+                              [ngClass]="{
+                                'bi-star-fill': star === 1,
+                                'bi-star-half': star === 0.5,
+                                'bi-star': star === 0
+                              }">
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <p class="review-comment mt-2">{{ review.comment }}</p>
+              </div>
+              
+              <div class="text-center mt-4" *ngIf="property.reviews.length > reviewsToShow">
+                <button class="btn btn-outline-primary" (click)="toggleShowAllReviews()">
+                  <i class="bi" [ngClass]="showAllReviews ? 'bi-chevron-up' : 'bi-chevron-down'"></i>
+                  {{ showAllReviews ? 'Show less' : 'Show all (' + property.reviews.length + ') reviews' }}
+                </button>
+              </div>
+            </div>
+            
+            <div *ngIf="!property.reviews || property.reviews.length === 0" class="text-center text-muted">
+              <p>Chưa có đánh giá nào</p>
+            </div>
+            
+            <hr>
+            
+            <!-- Add Review Form -->
+            <div class="add-review">
+              <h5>Leave a Review</h5>
+              <form (ngSubmit)="submitReview()">
+                <div class="row">
+
+                  <div class="form-group col-md-12">
+                    <label>Rating * <small class="text-muted"></small></label>
+                    <div class="star-rating-interactive">
+                      <div class="star-wrapper" 
+                           *ngFor="let star of [1, 2, 3, 4, 5]"
+                           (mousemove)="onStarHover($event, star)"
+                           (mouseleave)="onStarLeave()"
+                           (click)="onStarClick($event, star)">
+                        <i class="bi bi-star star-bg"></i>
+                        <i class="bi bi-star-fill star-fill" 
+                           [style.width.%]="getStarFillPercentage(star)"></i>
+                      </div>
+                    </div>
+                    <div class="rating-value" *ngIf="reviewForm.rating > 0">
+                      Đánh giá của bạn: {{ reviewForm.rating }} sao
+                    </div>
+                  </div>
+                  <div class="form-group col-md-12">
+                    <label>Your Review *</label>
+                    <textarea [(ngModel)]="reviewForm.comment" 
+                              name="review_text" 
+                              class="form-control" 
+                              style="height:130px;" 
+                              required></textarea>
+                  </div>
+                  <div class="form-group col-md-12 add_top_20">
+                    <button type="submit" class="btn btn-primary">Submit</button>
+                  </div>
+                </div>
+              </form>
+            </div>
+          </section>
+          
+        </div>
+        
+        <!-- Right Column - Booking Sidebar -->
+        <aside class="col-lg-4" id="sidebar">
+          <div class="box_detail booking sticky-top">
+            <!-- Price Info -->
+            <div class="pb-3 mb-3 border-bottom">
+              <h3 class="mb-0">
+                {{ formatPrice(property.pricePerNight) }} <span class="currency">đ</span>
+                <small class="text-muted">/ đêm</small>
+              </h3>
+              <div class="rating-badge mt-2" *ngIf="property.rating">
+                <span class="badge" [ngClass]="getRatingClass(property.rating)">
+                  {{ getRatingLabel(property.rating) }} {{ property.rating }}/5
+                </span>
+                <span class="text-muted ms-2" *ngIf="property.reviews">
+                  ({{ property.reviews.length }} Reviews)
+                </span>
+              </div>
+            </div>
+            
+            <!-- Date Picker -->
+            <div class="form-group">
+              <label>Chọn ngày của bạn</label>
+              <input class="form-control" 
+                     type="text" 
+                     [(ngModel)]="selectedDates"
+                     name="dates" 
+                     placeholder="Chọn ngày check-in và check-out">
+              <i class="bi bi-calendar-event"></i>
+            </div>
+            
+            <!-- Guest Selector -->
+            <div class="panel-dropdown">
+              <a href="javascript:void(0)">
+                KHÁCH <span class="qtyTotal">{{ getTotalGuests() }}</span>
+              </a>
+              <div class="panel-dropdown-content">
+                <!-- Adults -->
+                <div class="qtyButtons">
+                  <div>
+                    <label>Người lớn</label>
+                    <div class="sub-label">Từ 18 tuổi trở lên</div>
+                  </div>
+                  <div class="qty-controls">
+                    <button type="button" 
+                            class="btn-qty-minus" 
+                            [disabled]="!canDecrement('adults')"
+                            (click)="decrementGuest('adults')">-</button>
+                    <input type="text" 
+                           name="adults" 
+                           [value]="guestCounts.adults" 
+                           readonly>
+                    <button type="button" 
+                            class="btn-qty-plus" 
+                            [disabled]="!canIncrement('adults')"
+                            (click)="incrementGuest('adults')">+</button>
+                  </div>
+                </div>
+                
+                <!-- Teenagers -->
+                <div class="qtyButtons">
+                  <div>
+                    <label>Thanh thiếu niên</label>
+                    <div class="sub-label">Độ tuổi 11 - 17</div>
+                  </div>
+                  <div class="qty-controls">
+                    <button type="button" 
+                            class="btn-qty-minus" 
+                            [disabled]="!canDecrement('teenagers')"
+                            (click)="decrementGuest('teenagers')">-</button>
+                    <input type="text" 
+                           name="teenagers" 
+                           [value]="guestCounts.teenagers" 
+                           readonly>
+                    <button type="button" 
+                            class="btn-qty-plus" 
+                            [disabled]="!canIncrement('teenagers')"
+                            (click)="incrementGuest('teenagers')">+</button>
+                  </div>
+                </div>
+                
+                <!-- Children -->
+                <div class="qtyButtons">
+                  <div>
+                    <label>Trẻ em</label>
+                    <div class="sub-label">Độ tuổi 2 - 10</div>
+                  </div>
+                  <div class="qty-controls">
+                    <button type="button" 
+                            class="btn-qty-minus" 
+                            [disabled]="!canDecrement('children')"
+                            (click)="decrementGuest('children')">-</button>
+                    <input type="text" 
+                           name="children" 
+                           [value]="guestCounts.children" 
+                           readonly>
+                    <button type="button" 
+                            class="btn-qty-plus" 
+                            [disabled]="!canIncrement('children')"
+                            (click)="incrementGuest('children')">+</button>
+                  </div>
+                </div>
+                
+                <!-- Infants -->
+                <div class="qtyButtons">
+                  <div>
+                    <label>Trẻ sơ sinh</label>
+                    <div class="sub-label">Dưới 2 tuổi</div>
+                  </div>
+                  <div class="qty-controls">
+                    <button type="button" 
+                            class="btn-qty-minus" 
+                            [disabled]="!canDecrement('infants')"
+                            (click)="decrementGuest('infants')">-</button>
+                    <input type="text" 
+                           name="infants" 
+                           [value]="guestCounts.infants" 
+                           readonly>
+                    <button type="button" 
+                            class="btn-qty-plus" 
+                            [disabled]="!canIncrement('infants')"
+                            (click)="incrementGuest('infants')">+</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Pet Checkbox - Hiển thị ngoài panel dropdown -->
+            <div class="form-group mt-3">
+              <label class="container_check">Bạn có mang theo thú cưng không?
+                <input type="checkbox" 
+                       id="pet-checkbox"
+                       [(ngModel)]="isPetChecked"
+                       (change)="togglePetCheckbox()"
+                       [disabled]="!property || property.maxPets === 0">
+                <span class="checkmark"></span>
+              </label>
+              <small class="text-muted d-block mt-1" *ngIf="property && property.maxPets > 0">
+                (Tối đa {{ property.maxPets }} thú cưng)
+              </small>
+              <small class="text-muted d-block mt-1" *ngIf="!property || property.maxPets === 0">
+                (Chỗ ở này không cho phép mang thú cưng)
+              </small>
+            </div>
+            
+            <!-- Pet Selector - Hiển thị khi checkbox được tick -->
+            <div id="pet-qty-selector" class="pet-selector" *ngIf="isPetChecked && property && property.maxPets > 0" [@slideDown]>
+              <div class="qtyButtons">
+                <div>
+                  <label>Số lượng thú cưng</label>
+                  <div class="sub-label">Tối đa {{ property.maxPets }} con</div>
+                </div>
+                <div class="qty-controls">
+                  <button type="button" 
+                          class="btn-qty-minus" 
+                          [disabled]="!canDecrement('pets')"
+                          (click)="decrementGuest('pets')">-</button>
+                  <input type="text" 
+                         name="pets" 
+                         [value]="guestCounts.pets" 
+                         readonly>
+                  <button type="button" 
+                          class="btn-qty-plus" 
+                          [disabled]="!canIncrement('pets')"
+                          (click)="incrementGuest('pets')">+</button>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Action Buttons -->
+            <button class="btn btn-primary w-100 mt-3 mb-2" (click)="bookNow()">
+              Đặt phòng
+            </button>
+            <button 
+              class="btn w-100 wishlist-btn" 
+              [class.btn-danger]="isFavorite"
+              [class.btn-outline-primary]="!isFavorite"
+              [disabled]="isLoadingWishlist"
+              (click)="toggleWishlist()">
+              <i class="bi" [ngClass]="isFavorite ? 'bi-heart-fill' : 'bi-heart'"></i> 
+              {{ isFavorite ? 'Xóa khỏi yêu thích' : 'Thêm vào yêu thích' }}
+              <span *ngIf="isLoadingWishlist" class="spinner-border spinner-border-sm ms-2" role="status">
+                <span class="visually-hidden">Loading...</span>
+              </span>
+            </button>
+          </div>
+        </aside>
+        
+      </div>
+    </div>
+  </div>
+</main>
+
+<app-footer></app-footer>

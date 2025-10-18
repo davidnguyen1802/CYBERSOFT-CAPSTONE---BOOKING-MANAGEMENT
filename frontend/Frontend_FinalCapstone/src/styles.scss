@@ -1,0 +1,15 @@
+/* You can add global styles to this file, and also import other style files */
+
+// Import Bootstrap Icons
+@import "bootstrap-icons/font/bootstrap-icons.css";
+
+// Prevent horizontal scrollbar
+html, body {
+  overflow-x: hidden;
+  max-width: 100%;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+}

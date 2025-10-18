@@ -1,0 +1,185 @@
+
+<app-header></app-header>
+<div class="container">
+  
+    <!-- Intro Section -->
+    <div class="intro-section">
+        <h1>Khám phá các địa điểm tuyệt vời</h1>
+        <p>Tìm kiếm và đặt chỗ các khách sạn, căn hộ và nhà nghỉ yêu thích của bạn</p>
+    </div>
+    
+    <!-- Search Box -->
+    <div class="search-box">
+        <div class="search-container">
+            <input type="text" class="form-control search-input" 
+                placeholder="Tìm kiếm property theo tên..." 
+                [(ngModel)]="searchKeyword"
+                (input)="onSearchInput()"
+                (focus)="onSearchInput()"
+                (blur)="hideSuggestions()"
+                (keyup.enter)="onSearch()">
+            
+            <!-- Search Suggestions Dropdown -->
+            <div class="search-suggestions" *ngIf="showSuggestions">
+                <div class="suggestion-item" 
+                     *ngFor="let suggestion of searchSuggestions"
+                     (click)="onSuggestionClick(suggestion)">
+                    <div class="suggestion-content">
+                        <div class="suggestion-name">{{ suggestion.name }}</div>
+                        <div class="suggestion-details">
+                            <span class="location">{{ suggestion.locationName }}, {{ suggestion.cityName }}</span>
+                            <span class="price">{{ suggestion.pricePerNight | currency:'VND':'symbol':'1.0-0' }}/đêm</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <button class="btn btn-primary search-btn" (click)="onSearch()">
+            <i class="fa fa-search"></i> Tìm kiếm
+        </button>
+        <button class="btn btn-filter search-btn" (click)="goToEnhancedFilter()">
+            <i class="fa fa-filter"></i> Filters
+        </button>
+    </div>
+    
+    <!-- Top 7 Properties - Carousel Style -->
+    <section class="property-section top-section">
+        <div class="section-header">
+            <div>
+                <h2>Top Properties</h2>
+                <p class="section-subtitle">Các địa điểm được yêu thích nhất</p>
+            </div>
+            <a class="view-all-link" [routerLink]="['/properties']">
+                View all <i class="fa fa-arrow-right"></i>
+            </a>
+        </div>
+        
+        <!-- Loading State -->
+        <div *ngIf="loadingTop7" class="loading-message">
+            <i class="fa fa-spinner fa-spin"></i> Đang tải...
+        </div>
+        
+        <!-- Empty State -->
+        <div *ngIf="!loadingTop7 && topProperties.length === 0" class="empty-message">
+            Không có dữ liệu
+        </div>
+        
+        <!-- Carousel Slider - Display all 7, but only slide through first 5 -->
+        <div class="carousel-container" *ngIf="!loadingTop7 && topProperties.length > 0">
+            <button class="carousel-btn prev" (click)="previousSlide()" *ngIf="topProperties.length > 1">
+                <i class="fa fa-chevron-left"></i>
+            </button>
+            
+            <div class="carousel-wrapper">
+                <div class="carousel-track" [style.transform]="'translateX(-' + (currentSlide * 33.333) + '%)'">
+                    <div class="carousel-slide" 
+                         *ngFor="let property of topProperties; let i = index; trackBy: trackByPropertyId"
+                         [class.active]="i === currentSlide">
+                        <app-property-card [property]="property"></app-property-card>
+                    </div>
+                </div>
+            </div>
+            
+            <button class="carousel-btn next" (click)="nextSlide()" *ngIf="topProperties.length > 1">
+                <i class="fa fa-chevron-right"></i>
+            </button>
+        </div>
+        
+        <!-- Carousel Dots (max 5 dots for sliding, but showing all 7 cards) -->
+        <div class="carousel-dots" *ngIf="!loadingTop7 && topProperties.length > 1">
+            <span 
+                *ngFor="let dot of [0,1,2,3,4]; let i = index" 
+                class="dot" 
+                [class.active]="i === currentSlide"
+                (click)="goToSlide(i)"
+            ></span>
+        </div>
+    </section>
+
+    <!-- Popular Hotels -->
+    <section class="property-section">
+        <div class="section-header">
+            <div>
+                <h2>Popular Hotels</h2>
+                <p class="section-subtitle">Khám phá khách sạn được yêu thích, vị trí đẹp, giá hợp lý</p>
+            </div>
+            <a class="view-all-link" [routerLink]="['/properties/type', 2]">
+                View all ({{ popularHotels.length }}+) <i class="fa fa-arrow-right"></i>
+            </a>
+        </div>
+        
+        <div *ngIf="loadingHotels" class="loading-message">
+            <i class="fa fa-spinner fa-spin"></i> Đang tải...
+        </div>
+        
+        <div *ngIf="!loadingHotels && popularHotels.length === 0" class="empty-message">
+            Không có dữ liệu khách sạn
+        </div>
+        
+        <div class="property-grid" *ngIf="!loadingHotels && popularHotels.length > 0">
+            <app-property-card 
+                *ngFor="let property of popularHotels; trackBy: trackByPropertyId" 
+                [property]="property"
+            ></app-property-card>
+        </div>
+    </section>
+
+    <!-- Popular Apartments -->
+    <section class="property-section">
+        <div class="section-header">
+            <div>
+                <h2>Popular Apartments</h2>
+                <p class="section-subtitle">Chọn căn hộ yêu thích và bắt đầu chuyến đi của bạn</p>
+            </div>
+            <a class="view-all-link" [routerLink]="['/properties/type', 0]">
+                View all ({{ popularApartments.length }}+) <i class="fa fa-arrow-right"></i>
+            </a>
+        </div>
+        
+        <div *ngIf="loadingApartments" class="loading-message">
+            <i class="fa fa-spinner fa-spin"></i> Đang tải...
+        </div>
+        
+        <div *ngIf="!loadingApartments && popularApartments.length === 0" class="empty-message">
+            Không có dữ liệu căn hộ
+        </div>
+        
+        <div class="property-grid" *ngIf="!loadingApartments && popularApartments.length > 0">
+            <app-property-card 
+                *ngFor="let property of popularApartments; trackBy: trackByPropertyId" 
+                [property]="property"
+            ></app-property-card>
+        </div>
+    </section>
+
+    <!-- Popular Houses -->
+    <section class="property-section">
+        <div class="section-header">
+            <div>
+                <h2>Popular Houses</h2>
+                <p class="section-subtitle">Ngôi nhà lý tưởng cho gia đình</p>
+            </div>
+            <a class="view-all-link" [routerLink]="['/properties/type', 1]">
+                View all ({{ popularHouses.length }}+) <i class="fa fa-arrow-right"></i>
+            </a>
+        </div>
+        
+        <div *ngIf="loadingHouses" class="loading-message">
+            <i class="fa fa-spinner fa-spin"></i> Đang tải...
+        </div>
+        
+        <div *ngIf="!loadingHouses && popularHouses.length === 0" class="empty-message">
+            Không có dữ liệu nhà ở
+        </div>
+        
+        <div class="property-grid" *ngIf="!loadingHouses && popularHouses.length > 0">
+            <app-property-card 
+                *ngFor="let property of popularHouses; trackBy: trackByPropertyId" 
+                [property]="property"
+            ></app-property-card>
+        </div>
+    </section>
+
+</div>
+
+<app-footer></app-footer>

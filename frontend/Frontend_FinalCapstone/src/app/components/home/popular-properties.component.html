@@ -1,0 +1,38 @@
+<div class="popular-properties">
+  <h2>Popular Hotels</h2>
+  <div class="row">
+    <div class="col-md-3" *ngFor="let h of hotels">
+      <div class="card">
+        <img [src]="h.images && h.images.length ? ('http://localhost:8080' + h.images[0].imageUrl) : '/assets/img/default.jpg'" class="card-img-top" alt="...">
+        <div class="card-body">
+          <h5 class="card-title">{{ h.name }}</h5>
+          <p class="card-text">Rating: {{ h.rating || 'N/A' }}</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <h2 class="mt-4">Popular Apartments</h2>
+  <div class="row">
+    <div class="col-md-3" *ngFor="let a of apartments">
+      <div class="card">
+        <img [src]="a.images && a.images.length ? ('http://localhost:8080' + a.images[0].imageUrl) : '/assets/img/default.jpg'" class="card-img-top" alt="...">
+        <div class="card-body">
+          <h5 class="card-title">{{ a.name }}</h5>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <h2 class="mt-4">Popular Houses</h2>
+  <div class="row">
+    <div class="col-md-3" *ngFor="let ho of houses">
+      <div class="card">
+        <img [src]="ho.images && ho.images.length ? ('http://localhost:8080' + ho.images[0].imageUrl) : '/assets/img/default.jpg'" class="card-img-top" alt="...">
+        <div class="card-body">
+          <h5 class="card-title">{{ ho.name }}</h5>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

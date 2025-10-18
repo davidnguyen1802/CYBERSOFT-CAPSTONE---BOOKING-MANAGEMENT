@@ -1,0 +1,457 @@
+<app-header></app-header>
+
+<div class="container-fluid mt-4">
+  <div class="row">
+    <!-- Left Sidebar -->
+    <div class="col-lg-3 col-md-4 mb-4">
+      <div class="dark-sidebar sticky-top" style="top: 20px;">
+        <div class="sidebar-header">
+          <h5 class="sidebar-title">
+            <i class="fas fa-user-circle"></i> My Profile
+          </h5>
+        </div>
+        
+        <div class="sidebar-menu">
+          <a 
+            class="sidebar-item"
+            [class.active]="activeSection === 'profile'"
+            (click)="setActiveSection('profile')">
+            <i class="fas fa-user"></i>
+            <span>My Profile</span>
+          </a>
+          <a 
+            class="sidebar-item"
+            [class.active]="activeSection === 'wishlist'"
+            (click)="setActiveSection('wishlist')">
+            <i class="fas fa-heart"></i>
+            <span>Wishlist</span>
+          </a>
+          <a 
+            class="sidebar-item"
+            [class.active]="activeSection === 'promotions'"
+            (click)="setActiveSection('promotions')">
+            <i class="fas fa-tags"></i>
+            <span>Your Promotions</span>
+          </a>
+          <a 
+            class="sidebar-item"
+            [class.active]="activeSection === 'booking'"
+            (click)="setActiveSection('booking')">
+            <i class="fas fa-calendar-check"></i>
+            <span>Your Booking</span>
+          </a>
+          <a 
+            class="sidebar-item"
+            [class.active]="activeSection === 'reviews'"
+            (click)="setActiveSection('reviews')">
+            <i class="fas fa-star"></i>
+            <span>Your Reviews</span>
+          </a>
+          <a 
+            class="sidebar-item logout-item"
+            (click)="logout()">
+            <i class="fas fa-sign-out-alt"></i>
+            <span>Logout</span>
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main Content Area -->
+    <div class="col-lg-9 col-md-8">
+      
+      <!-- ==================== PROFILE SECTION ==================== -->
+      <div *ngIf="activeSection === 'profile'">
+        <!-- Profile Header -->
+        <div class="card mb-4">
+          <div class="card-body text-center">
+            <div class="mb-3">
+              <img 
+                [src]="avatarUrl" 
+                (error)="onAvatarError()"
+                alt="User Avatar"
+                class="profile-avatar-large"
+                onerror="this.src='assets/img/default-avatar.svg'"
+              />
+            </div>
+            <h4 class="mb-2">{{ userResponse?.username || userResponse?.email || 'User' }}</h4>
+            <p class="text-muted small">{{ getRoleName() }} Account</p>
+            <div class="d-flex justify-content-center gap-2">
+              <button 
+                class="btn btn-outline-primary" 
+                (click)="toggleEditMode()" 
+                *ngIf="!isEditMode">
+                <i class="fas fa-edit"></i> Edit Profile
+              </button>
+              <button 
+                class="btn btn-outline-danger" 
+                (click)="logout()">
+                <i class="fas fa-sign-out-alt"></i> Logout
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Profile Information - View Mode -->
+        <div class="card" *ngIf="!isEditMode">
+          <div class="card-header">
+            <h4><i class="fas fa-info-circle"></i> Profile Information</h4>
+          </div>
+          <div class="card-body">
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <strong><i class="fas fa-user"></i> Full Name:</strong>
+                <p class="mb-0">{{ userResponse?.fullname || 'Not specified' }}</p>
+              </div>
+              <div class="col-md-6 mb-3">
+                <strong><i class="fas fa-envelope"></i> Email:</strong>
+                <p class="mb-0">{{ userResponse?.email || 'Not specified' }}</p>
+              </div>
+              <div class="col-md-6 mb-3">
+                <strong><i class="fas fa-user-tag"></i> Role:</strong>
+                <span class="badge bg-primary">{{ getRoleName() }}</span>
+              </div>
+              <div class="col-md-6 mb-3">
+                <strong><i class="fas fa-birthday-cake"></i> Date of Birth:</strong>
+                <p class="mb-0">{{ formatDate(userResponse?.date_of_birth || '') }}</p>
+              </div>
+              <div class="col-md-6 mb-3" *ngIf="getUserAge()">
+                <strong><i class="fas fa-calendar-alt"></i> Age:</strong>
+                <p class="mb-0">{{ getUserAge() }} years old</p>
+              </div>
+              <div class="col-12 mb-3">
+                <strong><i class="fas fa-map-marker-alt"></i> Address:</strong>
+                <p class="mb-0">{{ userResponse?.address || 'Not specified' }}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Profile Information - Edit Mode -->
+        <div class="card" *ngIf="isEditMode">
+          <div class="card-header">
+            <h4><i class="fas fa-edit"></i> Edit Profile</h4>
+          </div>
+          <div class="card-body">
+            <form [formGroup]="userProfileForm">
+              
+              <!-- Full Name -->
+              <div class="mb-3">
+                <label for="fullname" class="form-label">
+                  <i class="fas fa-user"></i> Full Name *
+                </label>
+                <input 
+                  type="text" 
+                  formControlName="fullname" 
+                  class="form-control" 
+                  id="fullname" 
+                  placeholder="Enter your full name"
+                  [class.is-invalid]="userProfileForm.get('fullname')!.invalid && userProfileForm.get('fullname')!.touched">
+                <div 
+                  *ngIf="userProfileForm.get('fullname')!.invalid && userProfileForm.get('fullname')!.touched" 
+                  class="invalid-feedback">
+                  Full name is required (minimum 2 characters).
+                </div>
+              </div>
+
+              <!-- Address -->
+              <div class="mb-3">
+                <label for="address" class="form-label">
+                  <i class="fas fa-map-marker-alt"></i> Address
+                </label>
+                <textarea 
+                  formControlName="address" 
+                  class="form-control" 
+                  id="address" 
+                  rows="3"
+                  placeholder="Enter your address"
+                  [class.is-invalid]="userProfileForm.get('address')!.invalid && userProfileForm.get('address')!.touched">
+                </textarea>
+                <div 
+                  *ngIf="userProfileForm.get('address')!.invalid && userProfileForm.get('address')!.touched" 
+                  class="invalid-feedback">
+                  Address must be at least 3 characters.
+                </div>
+              </div>
+
+              <!-- Date of Birth -->
+              <div class="mb-3">
+                <label for="date_of_birth" class="form-label">
+                  <i class="fas fa-birthday-cake"></i> Date of Birth
+                </label>
+                <input 
+                  type="date" 
+                  formControlName="date_of_birth" 
+                  class="form-control" 
+                  id="date_of_birth">
+              </div>
+
+              <hr>
+
+              <!-- Password Section -->
+              <h5 class="mb-3">
+                <i class="fas fa-lock"></i> Change Password
+                <small class="text-muted">(Leave blank to keep current password)</small>
+              </h5>
+
+              <!-- New Password -->
+              <div class="mb-3">
+                <label for="password" class="form-label">New Password</label>
+                <input 
+                  type="password" 
+                  class="form-control" 
+                  formControlName="password"                         
+                  placeholder="Enter new password (minimum 6 characters)" 
+                  id="password" 
+                  [class.is-invalid]="userProfileForm.get('password')!.invalid && userProfileForm.get('password')!.touched">
+                <div 
+                  *ngIf="userProfileForm.get('password')!.invalid && userProfileForm.get('password')!.touched" 
+                  class="invalid-feedback">
+                  Password must be at least 6 characters.
+                </div>
+              </div>
+
+              <!-- Confirm Password -->
+              <div class="mb-3">
+                <label for="retype_password" class="form-label">Confirm Password</label>
+                <input 
+                  type="password" 
+                  class="form-control" 
+                  formControlName="retype_password"                         
+                  placeholder="Confirm your new password" 
+                  id="retype_password" 
+                  [class.is-invalid]="userProfileForm.get('retype_password')!.invalid && userProfileForm.get('retype_password')!.touched">
+                <div 
+                  *ngIf="userProfileForm.hasError('passwordMismatch')" 
+                  class="invalid-feedback">
+                  Passwords do not match.
+                </div>
+              </div>
+
+              <!-- Action Buttons -->
+              <div class="d-flex gap-2 justify-content-end">
+                <button 
+                  type="button" 
+                  class="btn btn-outline-secondary" 
+                  (click)="cancelEdit()">
+                  <i class="fas fa-times"></i> Cancel
+                </button>
+                <button 
+                  type="button" 
+                  (click)="save()"
+                  class="btn btn-primary"
+                  [disabled]="isLoading || userProfileForm.invalid">
+                  <i class="fas fa-save" *ngIf="!isLoading"></i>
+                  <i class="fas fa-spinner fa-spin" *ngIf="isLoading"></i>
+                  {{ isLoading ? 'Saving...' : 'Save Changes' }}
+                </button>
+              </div>
+
+            </form>
+          </div>
+        </div>
+
+        <!-- Account Details Card -->
+        <div class="card mt-4" *ngIf="!isEditMode">
+          <div class="card-header">
+            <h4><i class="fas fa-info"></i> Account Details</h4>
+          </div>
+          <div class="card-body">
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <strong><i class="fas fa-calendar-plus"></i> Member Since:</strong>
+                <p class="mb-0">{{ getMemberSinceDate() }}</p>
+              </div>
+              <div class="col-md-6 mb-3">
+                <strong><i class="fas fa-check-circle"></i> Account Status:</strong>
+                <span class="badge bg-success" *ngIf="userResponse?.is_active">Active</span>
+                <span class="badge bg-danger" *ngIf="!userResponse?.is_active">Inactive</span>
+              </div>
+            </div>
+            
+            <!-- Social Login Info -->
+            <div class="mt-3" *ngIf="userResponse?.google_account_id || userResponse?.facebook_account_id">
+              <h6><i class="fas fa-link"></i> Connected Accounts:</h6>
+              <div class="d-flex gap-2">
+                <span class="badge bg-info" *ngIf="userResponse?.google_account_id">
+                  <i class="fab fa-google"></i> Google Connected
+                </span>
+                <span class="badge bg-primary" *ngIf="userResponse?.facebook_account_id">
+                  <i class="fab fa-facebook"></i> Facebook Connected
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- User Statistics Card -->
+        <div class="card mt-4" *ngIf="!isEditMode && userResponse">
+          <div class="card-header">
+            <h4><i class="fas fa-chart-bar"></i> My Statistics</h4>
+          </div>
+          <div class="card-body">
+            <div class="row">
+              <!-- Total Bookings -->
+              <div class="col-md-3 mb-3">
+                <div class="stat-card text-center">
+                  <i class="fas fa-calendar-check fa-2x text-primary mb-2"></i>
+                  <h3 class="mb-0">{{ userResponse.total_bookings || 0 }}</h3>
+                  <small class="text-muted">Total Bookings</small>
+                </div>
+              </div>
+              
+              <!-- Wishlist -->
+              <div class="col-md-3 mb-3">
+                <div class="stat-card text-center">
+                  <i class="fas fa-heart fa-2x text-danger mb-2"></i>
+                  <h3 class="mb-0">{{ userResponse.favorite_properties_count || 0 }}</h3>
+                  <small class="text-muted">Wishlist</small>
+                </div>
+              </div>
+              
+              <!-- Promotions -->
+              <div class="col-md-3 mb-3">
+                <div class="stat-card text-center">
+                  <i class="fas fa-tags fa-2x text-warning mb-2"></i>
+                  <h3 class="mb-0">{{ userResponse.active_promotions_count || 0 }}</h3>
+                  <small class="text-muted">Promotions</small>
+                </div>
+              </div>
+              
+              <!-- Reviews -->
+              <div class="col-md-3 mb-3">
+                <div class="stat-card text-center">
+                  <i class="fas fa-star fa-2x text-info mb-2"></i>
+                  <h3 class="mb-0">{{ userResponse.total_reviews || 0 }}</h3>
+                  <small class="text-muted">Reviews</small>
+                </div>
+              </div>
+              
+              <!-- Host Statistics (only for HOST role) -->
+              <div class="col-md-3 mb-3" *ngIf="userResponse.hosted_properties_count !== undefined && getRoleName().toLowerCase() === 'host'">
+                <div class="stat-card text-center">
+                  <i class="fas fa-home fa-2x text-success mb-2"></i>
+                  <h3 class="mb-0">{{ userResponse.hosted_properties_count || 0 }}</h3>
+                  <small class="text-muted">Hosted Properties</small>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ==================== WISHLIST SECTION ==================== -->
+      <div *ngIf="activeSection === 'wishlist'" class="wishlist-section">
+        <!-- Header with Search -->
+        <div class="wishlist-header">
+          <h3 class="wishlist-title">
+            <i class="fas fa-heart"></i> My Wishlist
+          </h3>
+          
+          <!-- Search Bar -->
+          <div *ngIf="!isLoadingWishlist && favoriteProperties.length > 0" class="search-container">
+            <div class="search-box">
+              <i class="fas fa-search search-icon"></i>
+              <input 
+                type="text" 
+                class="form-control search-input" 
+                placeholder="Search by name, location, or host..."
+                [(ngModel)]="searchQuery"
+                (ngModelChange)="filterProperties()"
+              />
+              <button 
+                *ngIf="searchQuery" 
+                class="btn-clear-search"
+                (click)="searchQuery = ''; filterProperties()">
+                <i class="fas fa-times"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Loading State -->
+        <div *ngIf="isLoadingWishlist" class="text-center py-5">
+          <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+          </div>
+          <p class="mt-3 text-muted">Loading your favorite properties...</p>
+        </div>
+
+        <!-- Empty State -->
+        <div *ngIf="!isLoadingWishlist && favoriteProperties.length === 0" class="text-center py-5">
+          <i class="fas fa-heart-broken" style="font-size: 4rem; color: #ddd;"></i>
+          <h5 class="mt-3">Your wishlist is empty</h5>
+          <p class="text-muted">Start exploring and save your favorite properties!</p>
+          <a routerLink="/properties" class="btn btn-primary mt-3">
+            <i class="fas fa-search"></i> Browse Properties
+          </a>
+        </div>
+
+        <!-- No Search Results -->
+        <div *ngIf="!isLoadingWishlist && favoriteProperties.length > 0 && filteredProperties.length === 0" class="text-center py-5">
+          <i class="fas fa-search" style="font-size: 4rem; color: #ddd;"></i>
+          <h5 class="mt-3">No properties found</h5>
+          <p class="text-muted">Try adjusting your search criteria</p>
+          <button class="btn btn-outline-primary mt-3" (click)="searchQuery = ''; filterProperties()">
+            <i class="fas fa-redo"></i> Clear Search
+          </button>
+        </div>
+
+        <!-- Properties Grid -->
+        <div *ngIf="!isLoadingWishlist && filteredProperties.length > 0" class="row g-4 mt-3">
+          <div *ngFor="let property of filteredProperties" class="col-xl-4 col-lg-6 col-md-6">
+            <app-property-card [property]="property"></app-property-card>
+          </div>
+        </div>
+      </div>
+
+      <!-- ==================== PROMOTIONS SECTION ==================== -->
+      <div *ngIf="activeSection === 'promotions'">
+        <div class="card">
+          <div class="card-header">
+            <h4><i class="fas fa-tags"></i> Your Promotions</h4>
+          </div>
+          <div class="card-body">
+            <div class="alert alert-info">
+              <i class="fas fa-info-circle"></i> <strong>Coming Soon!</strong> Your promotions and discount codes will be displayed here.
+            </div>
+            <p class="text-muted">Manage your promotions, discounts, and special offers.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- ==================== BOOKING SECTION ==================== -->
+      <div *ngIf="activeSection === 'booking'">
+        <div class="card">
+          <div class="card-header">
+            <h4><i class="fas fa-calendar-check"></i> Your Bookings</h4>
+          </div>
+          <div class="card-body">
+            <div class="alert alert-info">
+              <i class="fas fa-info-circle"></i> <strong>Coming Soon!</strong> Your booking history and upcoming reservations will be displayed here.
+            </div>
+            <p class="text-muted">View and manage your property bookings, check-in dates, and reservation details.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- ==================== REVIEWS SECTION ==================== -->
+      <div *ngIf="activeSection === 'reviews'">
+        <div class="card">
+          <div class="card-header">
+            <h4><i class="fas fa-star"></i> Your Reviews</h4>
+          </div>
+          <div class="card-body">
+            <div class="alert alert-info">
+              <i class="fas fa-info-circle"></i> <strong>Coming Soon!</strong> Your reviews and ratings will be displayed here.
+            </div>
+            <p class="text-muted">View and manage reviews you've written for properties you've stayed at.</p>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<app-footer></app-footer>

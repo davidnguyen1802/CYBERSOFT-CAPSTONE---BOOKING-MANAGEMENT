@@ -1,0 +1,321 @@
+================================================================================
+                    FAVOURITE LIST CONTROLLER - API ENDPOINTS
+================================================================================
+
+Base URL: http://localhost:8080
+
+Controller: FavouriteListController
+Request Mapping: /user/favorites
+
+================================================================================
+                              DANH SÁCH ENDPOINTS
+================================================================================
+
+1. GET - LẤY DANH SÁCH PROPERTIES YÊU THÍCH CÒN AVAILABLE
+   -----------------------------------------------------------------------
+   Endpoint: GET /user/favorites/{userId}/available
+
+   Mô tả:
+   - Lấy danh sách tất cả các properties yêu thích của user
+   - Chỉ trả về các properties có status = "AVAILABLE" (còn hoạt động)
+   - Lọc ra các properties đã bị xóa hoặc không còn hoạt động
+
+   Path Parameter:
+   - userId (Integer): ID của user cần lấy danh sách yêu thích
+
+   Ví dụ:
+   GET http://localhost:8080/user/favorites/9/available
+
+   Response Success (200):
+   {
+     "code": 200,
+     "message": "Get available favorite properties successfully",
+     "data": [
+       {
+         "id": 7,
+         "propertyName": "Cozy Studio Apartment",
+         "status": "AVAILABLE",
+         "pricePerNight": 50.00,
+         ...
+       },
+       {
+         "id": 15,
+         "propertyName": "Luxury Villa",
+         "status": "AVAILABLE",
+         "pricePerNight": 200.00,
+         ...
+       }
+     ]
+   }
+
+   Response Error (404):
+   {
+     "code": 404,
+     "message": "Failed to get favorite properties: User not found with ID: 999",
+     "data": null
+   }
+
+
+2. POST - THÊM PROPERTY VÀO DANH SÁCH YÊU THÍCH
+   -----------------------------------------------------------------------
+   Endpoint: POST /user/favorites/{userId}/property/{propertyId}
+
+   Mô tả:
+   - Thêm một property vào danh sách yêu thích của user
+   - Kiểm tra xem property đã có trong danh sách chưa
+   - Kiểm tra user và property có tồn tại không
+
+   Path Parameters:
+   - userId (Integer): ID của user
+   - propertyId (Integer): ID của property cần thêm vào yêu thích
+
+   Ví dụ:
+   POST http://localhost:8080/user/favorites/9/property/25
+
+   Response Success (200):
+   {
+     "code": 200,
+     "message": "Property added to favorites successfully",
+     "data": null
+   }
+
+   Response Error - Already in favorites (400):
+   {
+     "code": 400,
+     "message": "Property is already in favorites",
+     "data": null
+   }
+
+   Response Error - Not found (404):
+   {
+     "code": 404,
+     "message": "Failed to add property to favorites: Property not found with ID: 999",
+     "data": null
+   }
+
+
+3. DELETE - XÓA PROPERTY KHỎI DANH SÁCH YÊU THÍCH
+   -----------------------------------------------------------------------
+   Endpoint: DELETE /user/favorites/{userId}/property/{propertyId}
+
+   Mô tả:
+   - Xóa một property khỏi danh sách yêu thích của user
+   - Kiểm tra xem property có trong danh sách không
+   - Kiểm tra user và property có tồn tại không
+
+   Path Parameters:
+   - userId (Integer): ID của user
+   - propertyId (Integer): ID của property cần xóa khỏi yêu thích
+
+   Ví dụ:
+   DELETE http://localhost:8080/user/favorites/9/property/25
+
+   Response Success (200):
+   {
+     "code": 200,
+     "message": "Property removed from favorites successfully",
+     "data": null
+   }
+
+   Response Error - Not in favorites (400):
+   {
+     "code": 400,
+     "message": "Property is not in favorites",
+     "data": null
+   }
+
+   Response Error - Not found (404):
+   {
+     "code": 404,
+     "message": "Failed to remove property from favorites: User not found with ID: 999",
+     "data": null
+   }
+
+
+4. GET - KIỂM TRA PROPERTY CÓ TRONG DANH SÁCH YÊU THÍCH KHÔNG
+   -----------------------------------------------------------------------
+   Endpoint: GET /user/favorites/{userId}/property/{propertyId}/check
+
+   Mô tả:
+   - Kiểm tra xem một property có trong danh sách yêu thích của user không
+   - Trả về true nếu có, false nếu không
+   - Hữu ích để hiển thị icon "trái tim" trên frontend
+
+   Path Parameters:
+   - userId (Integer): ID của user
+   - propertyId (Integer): ID của property cần kiểm tra
+
+   Ví dụ:
+   GET http://localhost:8080/user/favorites/9/property/7/check
+
+   Response Success - Is Favorite (200):
+   {
+     "code": 200,
+     "message": "Property is in favorites",
+     "data": true
+   }
+
+   Response Success - Not Favorite (200):
+   {
+     "code": 200,
+     "message": "Property is not in favorites",
+     "data": false
+   }
+
+   Response Error (500):
+   {
+     "code": 500,
+     "message": "Failed to check favorite status: Database error",
+     "data": null
+   }
+
+
+================================================================================
+                              TỔNG QUAN API
+================================================================================
+
+Tổng số endpoints: 4
+- GET: 2 endpoints (lấy danh sách, kiểm tra trạng thái)
+- POST: 1 endpoint (thêm vào yêu thích)
+- DELETE: 1 endpoint (xóa khỏi yêu thích)
+
+CORS: Enabled (tất cả origins đều được phép kết nối)
+
+Authentication: Không yêu cầu authentication trong controller
+(Nên thêm authentication để bảo vệ endpoints trong tương lai)
+
+
+================================================================================
+                         USE CASES - TRƯỜNG HỢP SỬ DỤNG
+================================================================================
+
+1. USER XEM DANH SÁCH YÊU THÍCH CỦA MÌNH
+   - Frontend gọi: GET /user/favorites/{userId}/available
+   - Hiển thị danh sách properties yêu thích còn available
+   - Lọc ra các properties đã bị xóa hoặc không hoạt động
+
+2. USER CLICK VÀO ICON TRÁI TIM ĐỂ THÊM VÀO YÊU THÍCH
+   - Frontend kiểm tra: GET /user/favorites/{userId}/property/{propertyId}/check
+   - Nếu chưa có trong favorites:
+     - Gọi: POST /user/favorites/{userId}/property/{propertyId}
+     - Đổi icon trái tim sang màu đỏ
+
+3. USER CLICK VÀO ICON TRÁI TIM ĐỂ XÓA KHỎI YÊU THÍCH
+   - Frontend kiểm tra: GET /user/favorites/{userId}/property/{propertyId}/check
+   - Nếu đã có trong favorites:
+     - Gọi: DELETE /user/favorites/{userId}/property/{propertyId}
+     - Đổi icon trái tim về màu xám
+
+4. HIỂN THỊ TRẠNG THÁI TRÁI TIM KHI LOAD TRANG PROPERTY DETAIL
+   - Frontend gọi: GET /user/favorites/{userId}/property/{propertyId}/check
+   - Nếu data = true: hiển thị trái tim màu đỏ
+   - Nếu data = false: hiển thị trái tim màu xám
+
+
+================================================================================
+                         TESTING VỚI POSTMAN/CURL
+================================================================================
+
+1. Test lấy danh sách yêu thích:
+   curl -X GET http://localhost:8080/user/favorites/9/available
+
+2. Test thêm vào yêu thích:
+   curl -X POST http://localhost:8080/user/favorites/9/property/25
+
+3. Test xóa khỏi yêu thích:
+   curl -X DELETE http://localhost:8080/user/favorites/9/property/25
+
+4. Test kiểm tra trạng thái:
+   curl -X GET http://localhost:8080/user/favorites/9/property/7/check
+
+
+================================================================================
+                              LƯU Ý QUAN TRỌNG
+================================================================================
+
+1. Endpoint "/available" CHỈ trả về properties có status = "AVAILABLE"
+   - Properties bị xóa (status = "DELETED") sẽ không hiển thị
+   - Properties không hoạt động (status = "INACTIVE") sẽ không hiển thị
+
+2. CORS đã được enable với @CrossOrigin
+   - Frontend từ bất kỳ port nào đều có thể kết nối
+
+3. Error Handling:
+   - 200: Thành công
+   - 400: Bad Request (property đã có/không có trong favorites)
+   - 404: Not Found (user hoặc property không tồn tại)
+   - 500: Internal Server Error (lỗi hệ thống)
+
+4. Transaction:
+   - Add và Remove operations sử dụng @Transactional
+   - Đảm bảo tính toàn vẹn dữ liệu
+
+5. Validation:
+   - Service layer kiểm tra user và property tồn tại
+   - Kiểm tra duplicate trước khi thêm
+   - Kiểm tra tồn tại trước khi xóa
+
+
+================================================================================
+                          FRONTEND INTEGRATION EXAMPLE
+================================================================================
+
+JavaScript/React Example:
+
+// 1. Lấy danh sách yêu thích
+const getFavorites = async (userId) => {
+    const response = await fetch(
+        `http://localhost:8080/user/favorites/${userId}/available`
+    );
+    const data = await response.json();
+    return data.data; // Array of properties
+};
+
+// 2. Thêm vào yêu thích
+const addToFavorites = async (userId, propertyId) => {
+    const response = await fetch(
+        `http://localhost:8080/user/favorites/${userId}/property/${propertyId}`,
+        { method: 'POST' }
+    );
+    const data = await response.json();
+    return data;
+};
+
+// 3. Xóa khỏi yêu thích
+const removeFromFavorites = async (userId, propertyId) => {
+    const response = await fetch(
+        `http://localhost:8080/user/favorites/${userId}/property/${propertyId}`,
+        { method: 'DELETE' }
+    );
+    const data = await response.json();
+    return data;
+};
+
+// 4. Kiểm tra trạng thái yêu thích
+const checkFavorite = async (userId, propertyId) => {
+    const response = await fetch(
+        `http://localhost:8080/user/favorites/${userId}/property/${propertyId}/check`
+    );
+    const data = await response.json();
+    return data.data; // true or false
+};
+
+// 5. Toggle favorite (thêm/xóa)
+const toggleFavorite = async (userId, propertyId) => {
+    const isFavorite = await checkFavorite(userId, propertyId);
+    if (isFavorite) {
+        return await removeFromFavorites(userId, propertyId);
+    } else {
+        return await addToFavorites(userId, propertyId);
+    }
+};
+
+
+================================================================================
+                              KẾT THÚC
+================================================================================
+
+Ngày tạo: 07/10/2025
+Controller: FavouriteListController
+Package: com.Cybersoft.Final_Capstone.controller
+

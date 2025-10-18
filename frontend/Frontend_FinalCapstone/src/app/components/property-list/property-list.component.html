@@ -1,0 +1,214 @@
+<app-header></app-header>
+
+<div class="page-wrapper">
+  <!-- Hero Banner -->
+  <div class="hero-banner">
+    <div class="hero-content">
+      <h1>{{ getPageTitle() }}</h1>
+      <p>{{ getPageSubtitle() }}</p>
+    </div>
+  </div>
+
+  <div class="container">
+
+
+    <div class="content-wrapper">
+      <!-- Filters Sidebar -->
+      <aside class="filters-sidebar">
+        <div class="filters-header">
+          <h3>Filters</h3>
+          <div class="header-actions">
+            <!-- Sort Buttons -->
+            <div class="sort-buttons">
+              <button class="btn-sort" 
+                      [class.active]="currentSort === 'newest'" 
+                      (click)="sortByNewest()">
+                <i class="fa fa-clock-o"></i> Newest
+              </button>
+              <button class="btn-sort" 
+                      [class.active]="currentSort === 'rating'" 
+                      (click)="sortByRating()">
+                <i class="fa fa-star"></i> Rating
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- FILTERS -->
+        <div>
+          <!-- City Filter -->
+          <div class="filter-group">
+            <h4>Thành phố (City)</h4>
+            <div class="filter-options">
+              <label *ngFor="let city of (showAllCities ? cities : (cities | slice:0:5)); trackBy: trackByCity" 
+                     class="filter-checkbox">
+                <input type="checkbox" 
+                       [checked]="selectedCity === city.cityName"
+                       (click)="onCityClick(city.cityName)" />
+                <span>{{ city.cityName }}</span>
+              </label>
+            </div>
+            <button *ngIf="cities.length > 5" 
+                    class="btn-show-all" 
+                    (click)="showAllCities = !showAllCities">
+              {{ showAllCities ? 'Thu gọn' : 'Show all' }}
+            </button>
+          </div>
+
+          <!-- Location Filter -->
+          <div class="filter-group">
+            <h4>Địa điểm (Location)</h4>
+            <div class="filter-options">
+              <label *ngFor="let location of (showAllLocations ? locations : (locations | slice:0:5)); trackBy: trackByLocation" 
+                     class="filter-checkbox">
+                <input type="checkbox" 
+                       [checked]="selectedLocation === location.locationName"
+                       (click)="onLocationClick(location.locationName)" />
+                <span>{{ location.locationName }}</span>
+              </label>
+            </div>
+            <button *ngIf="locations.length > 5" 
+                    class="btn-show-all" 
+                    (click)="showAllLocations = !showAllLocations">
+              {{ showAllLocations ? 'Thu gọn' : 'Show all' }}
+            </button>
+          </div>
+
+          <!-- Enhanced Filter Button -->
+          <div class="enhanced-filter-section">
+            <button class="btn btn-enhanced-filter" (click)="goToEnhancedFilter()">
+              <i class="fa fa-sliders"></i> Enhanced Filter
+            </button>
+          </div>
+        </div>
+
+
+
+
+      </aside>
+
+      <!-- Properties List -->
+      <main class="properties-list">
+        <!-- Error State -->
+        <div *ngIf="errorMsg" class="error-state">
+          <i class="fa fa-exclamation-circle"></i>
+          <p>{{ errorMsg }}</p>
+        </div>
+
+        <!-- Loading State -->
+        <div *ngIf="loading" class="loading-state">
+          <i class="fa fa-spinner fa-spin"></i>
+          <p>Đang tải properties...</p>
+        </div>
+
+        <!-- Empty State -->
+        <div *ngIf="!loading && !errorMsg && getDisplayProperties().length === 0" class="empty-state">
+          <i class="fa fa-home"></i>
+          <p>Không tìm thấy {{ propertyTypeLabels[propertyType].toLowerCase() }}</p>
+          <a routerLink="/" class="btn-back">Về trang chủ</a>
+        </div>
+
+        <!-- Property Cards -->
+        <div class="property-list-items" *ngIf="!loading && !errorMsg && properties.length > 0">
+          <article class="property-list-card" *ngFor="let property of properties; trackBy: trackByPropertyId">
+            <!-- Image Section -->
+            <div class="property-image">
+              <img [src]="getPropertyImage(property)" 
+                   [alt]="property.name" 
+                   style="object-fit: cover;" />
+              <div class="image-badge">{{ property.locationName }}</div>
+              <div class="property-type-badge">{{ getPropertyTypeLabel(property.propertyType) }}</div>
+              <button 
+                class="btn-favorite" 
+                [class.loading]="isLoadingWishlistMap.get(property.id)"
+                [disabled]="isLoadingWishlistMap.get(property.id)"
+                (click)="toggleFavorite($event, property.id)">
+                <i class="fas fa-heart" 
+                   [style.color]="isFavoriteMap.get(property.id) ? '#ff385c' : 'transparent'"
+                   [style.WebkitTextStroke]="isFavoriteMap.get(property.id) ? '0' : '2px white'"></i>
+              </button>
+            </div>
+
+            <!-- Content Section -->
+            <div class="property-content">
+              <!-- Rating Stars -->
+              <div class="property-stars">
+                <i class="fa" *ngFor="let star of [1,2,3,4,5]; let i = index" 
+                   [class.fa-star]="roundRating(property.rating) > i"
+                   [class.fa-star-half-o]="roundRating(property.rating) > i && roundRating(property.rating) < i + 1"
+                   [class.fa-star-o]="roundRating(property.rating) <= i"></i>
+              </div>
+
+              <!-- Title -->
+              <h3 class="property-title">
+                <a [routerLink]="['/products', property.id]">{{ property.name }}</a>
+              </h3>
+
+              <!-- Property Details -->
+              <div class="property-details">
+                <span class="detail-item">
+                  <i class="fa fa-bed"></i> {{ property.numberOfBedrooms }} bedroom{{ property.numberOfBedrooms > 1 ? 's' : '' }}
+                </span>
+                <span class="detail-item">
+                  <i class="fa fa-bath"></i> {{ property.numberOfBathrooms }} bathroom{{ property.numberOfBathrooms > 1 ? 's' : '' }}
+                </span>
+                <span class="detail-item">
+                  <i class="fa fa-users"></i> Up to {{ property.maxAdults }} guests
+                </span>
+              </div>
+
+              <!-- Description -->
+              <p class="property-description">{{ property.description || 'Hosted by ' + property.hostName }}</p>
+
+              <!-- Price -->
+              <div class="property-price">
+                From <strong>${{ property.pricePerNight | number:'1.0-0' }}</strong> /per person
+              </div>
+
+              <!-- Footer -->
+              <div class="property-footer">
+                <div class="property-rating">
+                  <span class="rating-label">{{ getRatingLabel(property.rating) }}</span>
+                  <span class="rating-count">{{ (property.reviews && property.reviews.length) || 0 }} Reviews</span>
+                  <span class="rating-badge">{{ roundRating(property.rating) | number:'1.1-1' }}</span>
+                </div>
+              </div>
+            </div>
+          </article>
+        </div>
+
+        <!-- Pagination -->
+        <div class="pagination-wrapper" *ngIf="!loading && !errorMsg && properties.length > 0 && totalPages > 1">
+          <div class="pagination-info">
+            Showing {{ (currentPage * pageSize) + 1 }} - {{ Math.min((currentPage + 1) * pageSize, totalElements) }} 
+            of {{ totalElements }} properties
+          </div>
+          
+          <div class="pagination-controls">
+            <button class="btn-page" 
+                    (click)="previousPage()" 
+                    [disabled]="currentPage === 0">
+              <i class="fa fa-chevron-left"></i> Previous
+            </button>
+            
+            <button *ngFor="let page of getPageNumbers()" 
+                    class="btn-page-number" 
+                    [class.active]="page === currentPage"
+                    (click)="goToPage(page)">
+              {{ page + 1 }}
+            </button>
+            
+            <button class="btn-page" 
+                    (click)="nextPage()" 
+                    [disabled]="currentPage === totalPages - 1">
+              Next <i class="fa fa-chevron-right"></i>
+            </button>
+          </div>
+        </div>
+
+      </main>
+    </div>
+  </div>
+</div>
+
+<app-footer></app-footer>

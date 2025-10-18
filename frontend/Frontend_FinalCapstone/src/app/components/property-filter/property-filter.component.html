@@ -1,0 +1,265 @@
+<app-header></app-header>
+
+<div class="filter-page-wrapper">
+  <!-- Search Header -->
+  <div class="search-header">
+    <div class="container">
+      <div class="search-box-inline">
+        <input type="text" class="form-control" 
+               placeholder="Tìm kiếm property theo tên..." 
+               [(ngModel)]="searchKeyword"
+               (keyup.enter)="applyFilters()">
+        <button class="btn btn-primary" (click)="applyFilters()">
+          <i class="fa fa-search"></i> Tìm kiếm
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="filter-layout">
+      <!-- Filters Sidebar -->
+      <aside class="filters-sidebar">
+        <div class="filters-header">
+          <h3><i class="fa fa-filter"></i> Filters</h3>
+          <button class="btn-clear" (click)="clearFilters()">
+            <i class="fa fa-times"></i> Clear All
+          </button>
+        </div>
+
+        <!-- Sort Options -->
+        <div class="filter-section">
+          <h4>Sắp xếp theo</h4>
+          <div class="sort-buttons">
+            <button class="btn-sort" 
+                    [class.active]="currentSort === 'newest'" 
+                    (click)="sortByNewest()">
+              <i class="fa fa-clock-o"></i> Mới nhất
+            </button>
+            <button class="btn-sort" 
+                    [class.active]="currentSort === 'rating'" 
+                    (click)="sortByRating()">
+              <i class="fa fa-star"></i> Đánh giá
+            </button>
+            <button class="btn-sort" 
+                    [class.active]="currentSort === 'price-asc'" 
+                    (click)="sortByPriceAsc()">
+              <i class="fa fa-arrow-up"></i> Giá tăng
+            </button>
+            <button class="btn-sort" 
+                    [class.active]="currentSort === 'price-desc'" 
+                    (click)="sortByPriceDesc()">
+              <i class="fa fa-arrow-down"></i> Giá giảm
+            </button>
+          </div>
+        </div>
+
+        <!-- Property Type -->
+        <div class="filter-section">
+          <h4>Loại hình lưu trú</h4>
+          <select class="form-control" [(ngModel)]="selectedPropertyType" (change)="applyFilters()">
+            <option [ngValue]="null">Tất cả</option>
+            <option *ngFor="let type of propertyTypes" [ngValue]="type.value">
+              {{ type.label }}
+            </option>
+          </select>
+        </div>
+
+        <!-- City Filter -->
+        <div class="filter-section">
+          <h4>Thành phố (City)</h4>
+          <select class="form-control" [(ngModel)]="selectedCity" (change)="onCityChange()">
+            <option [ngValue]="null">Chọn thành phố</option>
+            <option *ngFor="let city of cities; trackBy: trackByCity" [ngValue]="city.cityName">
+              {{ city.cityName }}
+            </option>
+          </select>
+        </div>
+
+        <!-- Location Filter -->
+        <div class="filter-section">
+          <h4>Địa điểm (Location)</h4>
+          <select class="form-control" [(ngModel)]="selectedLocation" [disabled]="!selectedCity">
+            <option [ngValue]="null">Chọn địa điểm</option>
+            <option *ngFor="let location of locations; trackBy: trackByLocation" [ngValue]="location.locationName">
+              {{ location.locationName }}
+            </option>
+          </select>
+        </div>
+
+        <!-- Location Text Input (Alternative) -->
+        <div class="filter-section">
+          <h4>Vị trí cụ thể</h4>
+          <input type="text" class="form-control" 
+                 placeholder="Nhập địa chỉ, khu vực..." 
+                 [(ngModel)]="selectedLocation">
+        </div>
+
+        <!-- Price Range -->
+        <div class="filter-section">
+          <h4>Khoảng giá (Price Range)</h4>
+          <div class="price-inputs">
+            <input type="number" class="form-control" 
+                   placeholder="Min" 
+                   [(ngModel)]="minPrice">
+            <span>-</span>
+            <input type="number" class="form-control" 
+                   placeholder="Max" 
+                   [(ngModel)]="maxPrice">
+          </div>
+        </div>
+
+        <!-- Room Configuration -->
+        <div class="filter-section">
+          <h4>Cấu hình phòng</h4>
+          <div class="room-config">
+            <div class="config-item">
+              <label>Phòng ngủ</label>
+              <input type="number" class="form-control" 
+                     placeholder="Số phòng" 
+                     [(ngModel)]="bedrooms" 
+                     min="0">
+            </div>
+            <div class="config-item">
+              <label>Phòng tắm</label>
+              <input type="number" class="form-control" 
+                     placeholder="Số phòng" 
+                     [(ngModel)]="bathrooms" 
+                     min="0">
+            </div>
+          </div>
+        </div>
+
+        <!-- Guest Configuration -->
+        <div class="filter-section">
+          <h4>Số lượng khách</h4>
+          <div class="guest-config">
+            <div class="config-item">
+              <label>Người lớn</label>
+              <input type="number" class="form-control" 
+                     [(ngModel)]="maxAdults" 
+                     min="0">
+            </div>
+            <div class="config-item">
+              <label>Trẻ em</label>
+              <input type="number" class="form-control" 
+                     [(ngModel)]="maxChildren" 
+                     min="0">
+            </div>
+            <div class="config-item">
+              <label>Em bé</label>
+              <input type="number" class="form-control" 
+                     [(ngModel)]="maxInfants" 
+                     min="0">
+            </div>
+            <div class="config-item">
+              <label>Thú cưng</label>
+              <input type="number" class="form-control" 
+                     [(ngModel)]="maxPets" 
+                     min="0">
+            </div>
+          </div>
+        </div>
+
+        <!-- Apply Button -->
+        <div class="filter-actions">
+          <button class="btn btn-primary btn-block" (click)="applyFilters()">
+            <i class="fa fa-check"></i> Áp dụng Filter
+          </button>
+        </div>
+      </aside>
+
+      <!-- Results Section -->
+      <main class="results-section">
+        <div class="results-header">
+          <h2>Tìm thấy {{ properties.length }} kết quả</h2>
+        </div>
+
+        <!-- Loading State -->
+        <div *ngIf="loading" class="loading-state">
+          <i class="fa fa-spinner fa-spin"></i> Đang tải...
+        </div>
+
+        <!-- Error State -->
+        <div *ngIf="errorMsg" class="error-state">
+          <i class="fa fa-exclamation-triangle"></i> {{ errorMsg }}
+        </div>
+
+        <!-- Empty State -->
+        <div *ngIf="!loading && !errorMsg && properties.length === 0" class="empty-state">
+          <i class="fa fa-search"></i>
+          <p>Không tìm thấy property nào phù hợp với tiêu chí của bạn</p>
+        </div>
+
+        <!-- Property Grid -->
+        <div class="property-grid" *ngIf="!loading && properties.length > 0">
+          <div class="property-card" *ngFor="let property of properties; trackBy: trackByPropertyId">
+            <div class="property-image">
+              <img [src]="getPropertyImage(property)" [alt]="property.name">
+              <button class="btn-favorite">
+                <i class="fa fa-heart-o"></i>
+              </button>
+            </div>
+            <div class="property-info">
+              <div class="property-rating">
+                <span class="rating-badge">{{ roundRating(property.rating) }}</span>
+                <span class="rating-text">{{ getRatingText(property.rating) }}</span>
+                <span class="reviews-count">({{ property.reviews.length || 0 }} reviews)</span>
+              </div>
+              <h3 class="property-name">{{ property.name }}</h3>
+              <p class="property-location">
+                <i class="fa fa-map-marker"></i> {{ property.locationName }}, {{ property.cityName }}
+              </p>
+              <div class="property-details">
+                <span><i class="fa fa-bed"></i> {{ property.numberOfBedrooms }} beds</span>
+                <span><i class="fa fa-bath"></i> {{ property.numberOfBathrooms }} baths</span>
+                <span><i class="fa fa-users"></i> {{ property.maxAdults }} adults</span>
+              </div>
+              <div class="property-footer">
+                <div class="property-price">
+                  <span class="price-label">From</span>
+                  <span class="price-amount">{{ property.pricePerNight | currency:'VND':'symbol':'1.0-0' }}</span>
+                  <span class="price-period">/per person</span>
+                </div>
+                <button class="btn btn-view" [routerLink]="['/properties', property.id]">
+                  View Details
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Pagination -->
+        <div class="pagination-wrapper" *ngIf="!loading && !errorMsg && properties.length > 0 && totalPages > 1">
+          <div class="pagination-info">
+            Showing {{ (currentPage * pageSize) + 1 }} - {{ Math.min((currentPage + 1) * pageSize, totalElements) }} 
+            of {{ totalElements }} properties
+          </div>
+          
+          <div class="pagination-controls">
+            <button class="btn-page" 
+                    (click)="previousPage()" 
+                    [disabled]="currentPage === 0">
+              <i class="fa fa-chevron-left"></i> Previous
+            </button>
+            
+            <button *ngFor="let page of getPageNumbers()" 
+                    class="btn-page-number" 
+                    [class.active]="page === currentPage"
+                    (click)="goToPage(page)">
+              {{ page + 1 }}
+            </button>
+            
+            <button class="btn-page" 
+                    (click)="nextPage()" 
+                    [disabled]="currentPage === totalPages - 1">
+              Next <i class="fa fa-chevron-right"></i>
+            </button>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+</div>
+
+<app-footer></app-footer>

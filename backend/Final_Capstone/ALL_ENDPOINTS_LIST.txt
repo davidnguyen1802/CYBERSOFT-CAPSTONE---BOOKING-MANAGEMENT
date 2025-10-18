@@ -1,0 +1,145 @@
+========================================
+     AIRBNB CLONE - ALL API ENDPOINTS
+========================================
+
+=== AUTHENTICATION CONTROLLER (/auth) ===
+POST   /auth/signin                          - User sign in (sets JWT cookie) --> PermitAll();
+POST   /auth/signup                          - User sign up with optional avatar (multipart/form-data)--> PermitAll();
+POST   /auth/upload-avatar                   - Upload/update user avatar (requires auth) --> Authenticated
+POST   /auth/forgot-password                 - Initiate password reset--> PermitAll();
+POST   /auth/reset-password                  - Reset password with token --> Authenticated
+GET    /auth/validate-reset-token            - Validate reset token--> Authenticated
+GET    /auth/me                              - Get current authenticated user ID --> Authenticated
+POST   /auth/signout                         - Sign out user (clears JWT cookie) --> Authenticated
+
+=== AMENITY CONTROLLER (/amenities) === --> PermitAll();
+POST   /amenities                            - Insert new amenity
+GET    /amenities                            - Get all amenities
+GET    /amenities/property/{propertyId}      - Get amenities by property ID
+POST   /amenities/property                   - Add amenity to property
+PUT    /amenities/property                   - Update amenity of property
+DELETE /amenities                            - Delete amenity
+
+=== BOOKING CONTROLLER (/bookings) === -->Authenticated
+POST   /bookings/create                      - Create new booking with optional payment
+GET    /bookings/{id}                        - Get booking by ID
+GET    /bookings/user/{userId}               - Get all bookings for specific user
+GET    /bookings/property/{propertyId}       - Get all bookings for specific property
+GET    /bookings/all                         - Get all bookings (admin only)
+PUT    /bookings/{id}/status                 - Update booking status
+PUT    /bookings/{id}/cancel                 - Cancel a booking
+DELETE /bookings/{id}                        - Delete booking (admin only)
+GET    /bookings/check-availability          - Check property availability for dates
+
+=== FACILITY CONTROLLER (/facilities) === --> PermitAll();
+POST   /facilities                           - Insert new facility
+GET    /facilities                           - Get all facilities
+GET    /facilities/property/{propertyId}     - Get facilities by property ID
+POST   /facilities/property                  - Add facility to property
+PUT    /facilities/property                  - Update facility of property
+DELETE /facilities                           - Delete facility
+
+=== FAVOURITE LIST CONTROLLER (/user/favorites) === --> Authenticated
+GET    /user/favorites/{userId}/available    - Get available favorite properties for user
+POST   /user/favorites/{userId}/property/{propertyId} - Add property to favorites
+DELETE /user/favorites/{userId}/property/{propertyId} - Remove property from favorites
+GET    /user/favorites/{userId}/property/{propertyId}/check - Check if property is in favorites
+
+=== FILE CONTROLLER (/files) ===
+GET    /files/{filename}                     - Download file by filename --> PermitAll();
+
+=== HOST CONTROLLER (/host) === --> Authenticated
+GET    /host/{hostId}/profile                - Get host profile information
+GET    /host/{hostId}/statistics             - Get host statistics (properties, bookings, revenue, ratings)
+GET    /host/{hostId}/properties             - Get all properties owned by host
+POST   /host/{hostId}/properties             - Add new property for host
+PUT    /host/{hostId}/properties/{propertyId} - Update host's property
+DELETE /host/{hostId}/properties/{propertyId} - Delete host's property
+GET    /host/{hostId}/bookings               - Get all bookings for host's properties
+GET    /host/{hostId}/bookings/status/{statusName} - Get host bookings by status
+GET    /host/{hostId}/properties/{propertyId}/bookings - Get bookings for specific property
+GET    /host/{hostId}/properties/{propertyId}/bookings/date-range - Get property bookings in date range
+PUT    /host/{hostId}/bookings/{bookingId}/approve - Approve a booking
+
+=== IMAGE CONTROLLER (/images) === --> Authenticated
+POST   /images/property                      - Add image to property (multipart/form-data)
+DELETE /images/property                      - Remove image from property
+PUT    /images                               - Update image (multipart/form-data)
+
+=== MOMO PAYMENT CONTROLLER (/api/payment/momo) === --> Authenticated
+POST   /api/payment/momo/create/{bookingId}  - Create Momo payment for booking
+POST   /api/payment/momo/ipn-handler         - Handle IPN callback from Momo
+GET    /api/payment/momo/payment-return      - Handle payment return from Momo
+GET    /api/payment/momo/transaction/{orderId} - Get transaction details by order ID
+
+=== PROMOTION CONTROLLER (/promotions) === -->Authenticated
+POST   /promotions/insert                    - Insert new promotion
+GET    /promotions/all                       - Get all promotions
+GET    /promotions/findCode/{code}           - Get promotion by code
+GET    /promotions/findName/{name}           - Get promotion by name
+PUT    /promotions/update/{name}             - Update promotion by name
+DELETE /promotions/delete/{name}             - Delete promotion by name
+
+=== PROPERTY CONTROLLER (/property) === --> PermitAll();
+POST   /property                             - Insert new property (multipart/form-data)
+PUT    /property/{id}                        - Update property by ID (multipart/form-data)
+DELETE /property/{id}                        - Delete property by ID
+GET    /property                             - Get all properties
+GET    /property/{id}                        - Get available property by ID
+GET    /property/name/{name}                 - Get property by name
+GET    /property/city/{cityName}             - Get properties by city
+GET    /property/location/{locationName}     - Get properties by location
+GET    /property/type/{propertyType}         - Get properties by type
+GET    /property/price                       - Get properties by price range (params: minPrice, maxPrice)
+GET    /property/bedrooms/{numberOfBedrooms} - Get properties by number of bedrooms
+GET    /property/bathrooms/{numberOfBathrooms} - Get properties by number of bathrooms
+GET    /property/amenities                   - Get properties by amenities (params: ids list)
+GET    /property/facilities                  - Get properties by facilities (params: ids list)
+GET    /property/host/{hostId}               - Get properties by host ID
+GET    /property/max-adults/{maxAdults}      - Get properties by max adults capacity
+GET    /property/max-children/{maxChildren}  - Get properties by max children capacity
+GET    /property/max-infants/{maxInfants}    - Get properties by max infants capacity
+GET    /property/max-pets/{maxPets}          - Get properties by max pets capacity
+GET    /property/top5                        - Get top 5 properties by priority
+GET    /property/top4/type/{propertyType}    - Get top 4 properties by type
+
+=== USER PROMOTION CONTROLLER (/promotions) === --> Authenticated
+GET    /promotions/count/{userId}            - Count active promotions for user
+GET    /promotions/{userId}                  - Get active promotions for user
+
+=== USER REVIEW CONTROLLER (/reviews) === -->Authenticated
+POST   /reviews                              - Create new review
+PUT    /reviews/{id}                         - Update review by ID
+DELETE /reviews/{id}                         - Delete review by ID
+
+========================================
+SECURITY CONFIGURATION NOTES:
+========================================
+
+PUBLIC ENDPOINTS (No Authentication Required):
+- /auth/signup, /auth/signin, /auth/health
+- /auth/forgot-password, /auth/reset-password, /auth/validate-reset-token
+- /oauth2/**, /login/oauth2/**
+- /api/payment/momo/ipn-handler
+- /properties/**, /property/**, /promotions/**, /images/**, /files/**
+
+PROTECTED ENDPOINTS (Authentication Required):
+- /auth/upload-avatar, /auth/signout, /auth/me
+- /bookings/**
+- /hosts/**
+- All other endpoints not explicitly marked as public
+
+CORS: Enabled for all controllers with @CrossOrigin annotation
+
+JWT AUTHENTICATION:
+- JWT tokens are stored in HttpOnly cookies named "jwt_token"
+- Cookie expires in 7 days (604800000 milliseconds)
+- Cookies are configured for cross-origin requests (localhost:5501)
+
+========================================
+TOTAL ENDPOINTS: 76
+========================================
+
+Generated on: Current Date
+Backend Port: 8080
+Frontend Port: 5501 (configured for CORS)

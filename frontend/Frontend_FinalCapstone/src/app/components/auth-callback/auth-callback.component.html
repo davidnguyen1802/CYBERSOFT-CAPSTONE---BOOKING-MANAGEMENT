@@ -1,0 +1,19 @@
+<div class="auth-callback-container">
+  <div class="auth-callback-content">
+    <div *ngIf="loading" class="loading-section">
+      <div class="spinner-border text-primary" role="status">
+        <span class="visually-hidden">Loading...</span>
+      </div>
+      <h3 class="mt-3">Completing authentication...</h3>
+      <p class="text-muted">Please wait while we log you in.</p>
+    </div>
+
+    <div *ngIf="!loading && errorMessage" class="error-section">
+      <div class="alert alert-danger" role="alert">
+        <i class="fa fa-exclamation-triangle"></i>
+        {{ errorMessage }}
+      </div>
+      <p class="text-muted">Redirecting to login page...</p>
+    </div>
+  </div>
+</div>

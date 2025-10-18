@@ -1,0 +1,12 @@
+package com.Cybersoft.Final_Capstone.repository;
+
+import com.Cybersoft.Final_Capstone.Entity.UserReview;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+import java.util.List;
+
+@Repository
+public interface UserReviewRepository extends JpaRepository<UserReview, Integer> {
+    List<UserReview> findByUserIdAndProperty_Status_Name(int userId, String statusName);
+}

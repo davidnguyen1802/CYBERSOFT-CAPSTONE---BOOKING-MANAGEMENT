@@ -1,0 +1,161 @@
+@import '../../styles/shared-styles.scss';
+
+header {
+    background-color: rgba(0, 0, 0, 0);
+    color: rgb(173, 178, 203);
+}
+
+.navbar {
+    background-color: rgba(0, 0, 0, 0) !important;
+}
+
+.navbar .container {
+    background-color: rgba(0, 0, 0, 0) !important;
+}
+
+.navbar .container .navbar-brand {
+    color: rgb(173, 178, 203);
+}
+
+.navbar .container .navbar-nav .nav-link {
+    color: rgb(173, 178, 203);
+    border-radius: 18px;
+    padding: 8px 16px;
+    position: relative;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    overflow: hidden;
+    
+    // Animated background effect
+    &::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background-color: $shopapp-color;
+        border-radius: 18px;
+        transition: left 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        z-index: -1;
+    }
+    
+    &:hover {
+        color: white;
+        transform: translateY(-2px);
+    }
+}
+
+.navbar .container .navbar-nav .nav-link.active {
+    color: white !important;
+    
+    &::before {
+        left: 0;
+    }
+}
+.nav-item.active {
+    background-color: $shopapp-color !important;
+    color: white !important;
+}
+
+/* Add this CSS to your project's stylesheet */
+
+.popover-list {
+    padding: 10px;
+}
+.popover-body {
+    padding: 0px;
+}
+.popover-item {
+    display: block;
+    margin-bottom: 5px;
+    text-decoration: none;
+    color: #333;
+}
+
+.popover-item:hover {
+    background-color: #f0f0f0;
+    color: $shopapp-color;    
+}
+
+/* User Profile Link with Avatar */
+.user-profile-link {
+    display: flex !important;
+    align-items: center !important;
+    gap: 10px;
+    padding: 5px 16px !important;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+    border-radius: 18px;
+    
+    // Animated background effect (same as nav-link)
+    &::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background-color: $shopapp-color;
+        border-radius: 18px;
+        transition: left 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        z-index: -1;
+    }
+    
+    &:hover {
+        transform: translateY(-2px);
+        
+        .username-text {
+            color: white;
+        }
+    }
+    
+    &.active {
+        .username-text {
+            color: white !important;
+        }
+        
+        &::before {
+            left: 0;
+        }
+    }
+}
+
+.user-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    transition: all 0.3s ease;
+    
+    &:hover {
+        border-color: $shopapp-color;
+        box-shadow: 0 0 10px rgba(240, 101, 197, 0.5);
+    }
+}
+
+.username-text {
+    color: rgb(173, 178, 203);
+    font-weight: 500;
+    max-width: 150px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    
+    .user-profile-link:hover & {
+        color: white;
+    }
+}
+
+// Responsive adjustments
+@media (max-width: 768px) {
+    .username-text {
+        max-width: 100px;
+    }
+    
+    .user-avatar {
+        width: 35px;
+        height: 35px;
+    }
+}

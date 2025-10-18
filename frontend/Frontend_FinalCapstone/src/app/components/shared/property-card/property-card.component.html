@@ -1,0 +1,62 @@
+<article class="property-card" [routerLink]="['/properties', property.id]">
+  <!-- Image Thumbnail -->
+  <div class="thumb">
+    <img 
+      [src]="getImageUrl()" 
+      [alt]="property.name"
+      loading="lazy"
+      (error)="onImageError($event)"
+    />
+    
+    <!-- Image Count Badge (Top Left) -->
+    <div class="badge-count" *ngIf="property.images && property.images.length > 1">
+      <i class="fa fa-camera"></i> {{ property.images.length }}
+    </div>
+    
+    <!-- Favorite Button (Top Right) -->
+    <button 
+      class="btn-favorite" 
+      [class.active]="isFavorite"
+      [class.loading]="isLoading"
+      (click)="toggleFavorite($event)"
+      [attr.aria-label]="isFavorite ? 'Remove from favorites' : 'Add to favorites'"
+      [disabled]="isLoading"
+    >
+      <i class="fas" [ngClass]="isFavorite ? 'fa-heart' : 'fa-heart'" 
+         [style.fontWeight]="isFavorite ? '900' : '400'"
+         [style.WebkitTextStroke]="isFavorite ? '0' : '2px white'"
+         [style.color]="isFavorite ? '#ff385c' : 'transparent'"></i>
+    </button>
+  </div>
+
+  <!-- Card Content -->
+  <div class="card-content">
+    <!-- Property Type Badge -->
+    <span class="property-type-badge">{{ getPropertyTypeLabel() }}</span>
+    
+    <!-- Title (max 2 lines) -->
+    <h3 class="property-title line-2">{{ property.name }}</h3>
+    
+    <!-- Location -->
+    <p class="property-location line-1">
+      <i class="fa fa-map-marker"></i> {{ property.locationName }}, {{ property.cityName }}
+    </p>
+    
+    <!-- Description (max 2 lines for better readability) -->
+    <p class="property-desc line-2">{{ property.description }}</p>
+    
+    <!-- Price -->
+    <div class="property-price">
+      <strong>{{ property.pricePerNight | number:'1.0-0' }} VNĐ</strong>/đêm
+    </div>
+    
+    <!-- Footer with Rating -->
+    <div class="card-footer" *ngIf="property.reviews && property.reviews.length > 0">
+      <div class="rating-wrapper">
+        <span class="rating-label">{{ getRatingLabel() }}</span>
+        <span class="rating-count">{{ property.reviews.length }} đánh giá</span>
+        <span class="rating-badge">{{ property.rating | number:'1.1-1' }}</span>
+      </div>
+    </div>
+  </div>
+</article>

@@ -1,0 +1,30 @@
+<section class="recommended">
+  <h2 class="section-title">Our Popular Places</h2>
+  <p class="section-sub">Khám phá những địa điểm được yêu thích nhất bởi cộng đồng du lịch của chúng tôi.</p>
+
+  <div *ngIf="loading" class="loading">Loading...</div>
+  <div *ngIf="!loading && items.length === 0" class="empty">No recommendations</div>
+
+  <div *ngIf="items.length > 0" class="carousel" tabindex="0">
+    <div class="track" #track>
+      <article class="card" *ngFor="let it of items; let i = index" [class.active]="i === activeIndex">
+        <a [routerLink]="['/products', it.id]" class="card-link">
+          <div class="card-media">
+            <img [src]="it.images && it.images.length ? (getImageUrl(it.images[0].imageUrl)) : '/assets/img/default.jpg'" alt="{{ it.name }}">
+            <div class="fav">♡</div>
+          </div>
+          <div class="card-body">
+            <h3 class="card-title">{{ it.name }}</h3>
+            <p class="card-desc">{{ it.description }}</p>
+            <div class="card-price">Từ <span class="price-value">{{ it.pricePerNight | number }} VNĐ/đêm</span></div>
+          </div>
+        </a>
+        <div class="rating"> <span class="rating-score">{{ (it.rating || 0) | number:'1.1-1' }}</span> </div>
+      </article>
+    </div>
+
+  <div class="dots">
+      <button *ngFor="let _ of items; let idx = index" class="dot" [class.active]="idx === activeIndex" (click)="goTo(idx)"></button>
+    </div>
+  </div>
+</section>

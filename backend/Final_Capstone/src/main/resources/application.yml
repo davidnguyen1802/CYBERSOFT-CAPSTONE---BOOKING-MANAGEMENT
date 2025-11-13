@@ -22,16 +22,16 @@ spring:
       client:
         registration:
           google:
-            client-id: "451118648162-cibc180se4cu6k02f52hkeheju6lvd5f.apps.googleusercontent.com"
-            client-secret: "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"
+            client-id: 
+            client-secret: 
             redirect-uri: "${GOOGLE_REDIRECT_URI:http://localhost:8080/auth/social/callback}"
             scope:
               - openid
               - profile
               - email
           facebook:
-            client-id: 100765477998152
-            client-secret: 5abd3135745ac7e7e26bd4c8c8b8717
+            client-id: 
+            client-secret: 
             redirect-uri: "${FACEBOOK_REDIRECT_URI:http://localhost:8080/auth/social/callback}"
             auth-uri: https://www.facebook.com/v21.0/dialog/oauth
             token-uri: https://graph.facebook.com/oauth/access_token
@@ -55,7 +55,7 @@ file:
     root-path: D:\AIRKNT\Final_Capstone\images
 
 jwt:
-  secret: ${JWT_SECRET:dGhpc2lzYXZlcnlzZWN1cmVzZWNyZXRrZXlmb3Jqd3R0b2tlbmVuY29kaW5nMTIzNDU2Nzg5MA==}
+  secret: 
   issuer: Final_Capstone_Backend
   access-expiration-seconds: 900
   refresh-expiration-seconds: 86400
@@ -63,10 +63,7 @@ jwt:
 
 cors:
   allowed-origins:
-    - http://localhost:3000
     - http://localhost:4200
-    - http://localhost:5173
-    - http://127.0.0.1:5501
     - https://your-production-domain.com
   allowed-methods: [GET, POST, PUT, DELETE, PATCH, OPTIONS]
   allowed-headers:
@@ -89,15 +86,15 @@ rate-limit:
 mail:
   host: smtp.gmail.com
   port: 587
-  username: ncdk05@gmail.com
-  password: pztu vuxm tgns ovln
+  username: 
+  password: 
   properties:
     mail:
       smtp:
         auth: true
         starttls:
           enable: true
-  from: ncdk05@gmail.com
+  from: 
 
 password-reset:
   token-expiration: 3600000  # 1 hour in milliseconds
@@ -105,9 +102,9 @@ password-reset:
 
 #Core PayOS credentials
 payos:
-  client-id: "022ba7a1-d5ba-452f-ad5f-f97aeb5da2fa"
-  api-key: "14a437cb-94c0-43df-8b77-f4bbd6ca28eb"
-  checksum-key: "79ee5d5b8f3d1044b12f9f9098eb54fc6fb576b18556acbe51d0c09a7cd20aa9"
+  client-id: 
+  api-key: 
+  checksum-key: 
   return-url: "http://localhost:4200/payment/success"
   cancel-url: "http://localhost:4200/payment/cancel"
   endpoint: "https://api-merchant.payos.vn/v2/payment-requests"

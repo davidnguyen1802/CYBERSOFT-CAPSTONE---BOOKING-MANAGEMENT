@@ -22,16 +22,12 @@ spring:
       client:
         registration:
           google:
-            client-id: 
-            client-secret: 
             redirect-uri: "${GOOGLE_REDIRECT_URI:http://localhost:8080/auth/social/callback}"
             scope:
               - openid
               - profile
               - email
           facebook:
-            client-id: 
-            client-secret: 
             redirect-uri: "${FACEBOOK_REDIRECT_URI:http://localhost:8080/auth/social/callback}"
             auth-uri: https://www.facebook.com/v21.0/dialog/oauth
             token-uri: https://graph.facebook.com/oauth/access_token
@@ -102,9 +98,6 @@ password-reset:
 
 #Core PayOS credentials
 payos:
-  client-id: 
-  api-key: 
-  checksum-key: 
   return-url: "http://localhost:4200/payment/success"
   cancel-url: "http://localhost:4200/payment/cancel"
   endpoint: "https://api-merchant.payos.vn/v2/payment-requests"

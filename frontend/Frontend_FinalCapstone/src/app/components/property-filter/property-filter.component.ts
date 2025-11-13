@@ -7,6 +7,7 @@ import { LocationService } from '../../services/location.service';
 import { CityService } from '../../services/city.service';
 import { Location } from '../../models/location';
 import { City } from '../../models/city';
+import { environment } from '../../../environments/environment';
 
 @Component({
   selector: 'app-property-filter',
@@ -315,7 +316,13 @@ export class PropertyFilterComponent implements OnInit, OnDestroy {
 
   getPropertyImage(property: Property): string {
     if (property.images && property.images.length > 0) {
-      return `http://localhost:8080${property.images[0].imageUrl}`;
+      const imageUrl = property.images[0].imageUrl;
+      if (imageUrl.startsWith('http')) {
+        return imageUrl;
+      }
+      // Ensure we have a leading slash for relative paths
+      const cleanPath = imageUrl.startsWith('/') ? imageUrl : `/${imageUrl}`;
+      return `${environment.apiBaseUrl || 'http://localhost:8080'}${cleanPath}`;
     }
     return '/assets/img/default-property.jpg';
   }

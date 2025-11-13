@@ -1,0 +1,250 @@
+<div class="promotion-selection-container">
+  <div class="header">
+    <button class="btn-back" (click)="goBack()">
+      <i class="fas fa-arrow-left"></i> Back to Booking
+    </button>
+    <h2>Choose Your Promotion</h2>
+    <p class="subtitle">Claim a new promotion or select from your existing ones</p>
+  </div>
+
+  <div class="content-wrapper">
+    <!-- Section 1: Claim New Promotion -->
+    <div class="claim-section">
+      <div class="section-header">
+        <i class="fas fa-gift"></i>
+        <h3>Have a Promotion Code?</h3>
+      </div>
+      
+      <div class="claim-form">
+        <div class="input-group">
+          <input 
+            type="text" 
+            [(ngModel)]="promotionCode"
+            placeholder="Enter promotion code (e.g., WELCOME2025)"
+            class="form-control"
+            [disabled]="isClaimingPromotion"
+            (keyup.enter)="claimPromotion()"
+          />
+          <button 
+            class="btn btn-primary"
+            (click)="claimPromotion()"
+            [disabled]="isClaimingPromotion || !promotionCode.trim()"
+          >
+            <span *ngIf="!isClaimingPromotion">
+              <i class="fas fa-check"></i> Kiểm tra
+            </span>
+            <span *ngIf="isClaimingPromotion">
+              <i class="fas fa-spinner fa-spin"></i> Checking...
+            </span>
+          </button>
+        </div>
+
+        <div class="error-message" *ngIf="claimErrorMessage">
+          <i class="fas fa-exclamation-circle"></i>
+          {{ claimErrorMessage }}
+        </div>
+      </div>
+    </div>
+
+    <!-- Section 2: Existing Promotions List -->
+    <div class="list-section">
+      <div class="section-header">
+        <i class="fas fa-ticket-alt"></i>
+        <h3>Your Available Promotions</h3>
+        <span class="count-badge" *ngIf="activePromotions.length > 0">
+          {{ activePromotions.length }} available
+        </span>
+      </div>
+
+      <!-- Loading State -->
+      <div class="loading-state" *ngIf="isLoadingPromotions">
+        <i class="fas fa-spinner fa-spin"></i>
+        <p>Loading your promotions...</p>
+      </div>
+
+      <!-- Empty State -->
+      <div class="empty-state" *ngIf="!isLoadingPromotions && activePromotions.length === 0">
+        <i class="fas fa-inbox"></i>
+        <p>You don't have any active promotions yet</p>
+        <small>Claim one using the code above!</small>
+      </div>
+
+      <!-- Promotions List -->
+      <div class="promotions-grid" *ngIf="!isLoadingPromotions && activePromotions.length > 0">
+        <div 
+          class="promotion-card"
+          *ngFor="let promotion of paginatedPromotions"
+          [class.selected]="isPromotionSelected(promotion)"
+          (click)="selectPromotion(promotion)"
+        >
+          <div class="card-header">
+            <div class="promo-code">{{ promotion.promotionCode }}</div>
+            <span class="status-badge" [ngClass]="getStatusBadgeClass(promotion)">
+              ACTIVE
+            </span>
+          </div>
+
+          <div class="card-body">
+            <h4 class="promo-title">{{ promotion.promotionName }}</h4>
+            <p class="promo-description" *ngIf="promotion.description">
+              {{ promotion.description }}
+            </p>
+
+            <div class="promo-details">
+              <div class="detail-item" *ngIf="promotion.discountPercentage">
+                <i class="fas fa-percentage"></i>
+                <span>{{ promotion.discountPercentage }}% OFF</span>
+              </div>
+
+              <div class="detail-item" *ngIf="promotion.maxDiscountAmount">
+                <i class="fas fa-tag"></i>
+                <span>Max: {{ formatCurrency(promotion.maxDiscountAmount) }}</span>
+              </div>
+
+              <div class="detail-item" *ngIf="promotion.minBookingAmount">
+                <i class="fas fa-money-bill-wave"></i>
+                <span>Min: {{ formatCurrency(promotion.minBookingAmount) }}</span>
+              </div>
+
+              <div class="detail-item expiry">
+                <i class="fas fa-clock"></i>
+                <span>Expires: {{ formatDate(promotion.expiresDate) }}</span>
+              </div>
+            </div>
+
+            <div class="usage-info" *ngIf="promotion.promotionUsages && promotion.promotionUsages.length > 0">
+              <i class="fas fa-info-circle"></i>
+              <span>Used {{ promotion.promotionUsages.length }} time(s)</span>
+            </div>
+          </div>
+
+          <div class="card-footer">
+            <button 
+              class="btn-select"
+              [class.selected]="isPromotionSelected(promotion)"
+            >
+              <i class="fas" [class.fa-check-circle]="isPromotionSelected(promotion)" [class.fa-circle]="!isPromotionSelected(promotion)"></i>
+              {{ isPromotionSelected(promotion) ? 'Selected' : 'Select' }}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Pagination -->
+      <div class="pagination" *ngIf="!isLoadingPromotions && totalPages > 1">
+        <button 
+          class="btn-pagination"
+          (click)="previousPage()"
+          [disabled]="currentPage === 0"
+        >
+          <i class="fas fa-chevron-left"></i> Previous
+        </button>
+
+        <span class="page-info">
+          Page {{ currentPage + 1 }} of {{ totalPages }}
+        </span>
+
+        <button 
+          class="btn-pagination"
+          (click)="nextPage()"
+          [disabled]="currentPage >= totalPages - 1"
+        >
+          Next <i class="fas fa-chevron-right"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- Preview Section -->
+    <div class="preview-section" *ngIf="selectedPromotion">
+      <div class="preview-header">
+        <i class="fas fa-calculator"></i>
+        <h3>Booking Summary</h3>
+      </div>
+
+      <!-- Validating State -->
+      <div class="validating-state" *ngIf="isValidatingPromotion">
+        <i class="fas fa-spinner fa-spin"></i>
+        <p>Validating promotion...</p>
+      </div>
+
+      <!-- Preview Data -->
+      <div class="preview-content" *ngIf="!isValidatingPromotion && previewData">
+        <div class="price-row">
+          <span class="label">Original Amount:</span>
+          <span class="value original">{{ formatCurrency(previewData.originalAmount) }}</span>
+        </div>
+
+        <div class="price-row discount">
+          <span class="label">
+            <i class="fas fa-tag"></i>
+            Discount ({{ selectedPromotion.promotionCode }}):
+          </span>
+          <span class="value">{{ formatCurrency(previewData.discountAmount) }}</span>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="price-row total">
+          <span class="label">Final Amount:</span>
+          <span class="value">{{ formatCurrency(previewData.finalAmount) }}</span>
+        </div>
+
+        <div class="savings-badge">
+          <i class="fas fa-piggy-bank"></i>
+          You save {{ formatCurrency(Math.abs(previewData.discountAmount)) }}! 🎉
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Action Buttons -->
+  <div class="action-buttons">
+    <button 
+      class="btn btn-secondary"
+      (click)="skipAndCreateBooking()"
+    >
+      <i class="fas fa-forward"></i>
+      Bỏ qua và gửi request
+    </button>
+
+    <button 
+      class="btn btn-success"
+      (click)="applyAndCreateBooking()"
+      [disabled]="!selectedPromotion || !previewData || isValidatingPromotion"
+    >
+      <i class="fas fa-check-circle"></i>
+      Áp dụng và gửi request
+      <span *ngIf="previewData" class="amount-badge">
+        {{ formatCurrency(previewData.finalAmount) }}
+      </span>
+    </button>
+  </div>
+</div>
+
+<!-- Success Modal -->
+<div class="success-modal-overlay" *ngIf="showSuccessModal" (click)="closeSuccessModal()">
+  <div class="success-modal" (click)="$event.stopPropagation()">
+    <div class="success-icon">
+      <i class="fas fa-check-circle"></i>
+    </div>
+    <h2>Booking Created Successfully!</h2>
+    <p>Your booking has been submitted and is waiting for host approval.</p>
+    <div class="success-details" *ngIf="previewData">
+      <div class="detail-row">
+        <span>Property:</span>
+        <strong>{{ bookingData?.propertyName }}</strong>
+      </div>
+      <div class="detail-row" *ngIf="selectedPromotion">
+        <span>Promotion Applied:</span>
+        <strong>{{ selectedPromotion.promotionCode }}</strong>
+      </div>
+      <div class="detail-row">
+        <span>Final Amount:</span>
+        <strong class="amount-highlight">{{ formatCurrency(previewData.finalAmount) }}</strong>
+      </div>
+    </div>
+    <button class="btn-success-ok" (click)="closeSuccessModal()">
+      OK - View My Bookings
+    </button>
+  </div>
+</div>

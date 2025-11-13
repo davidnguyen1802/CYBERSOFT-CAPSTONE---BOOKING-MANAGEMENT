@@ -2,7 +2,7 @@
 <div class="container">
     <div class="row">
         <div class="col-md-6 offset-md-3">
-            <form #loginForm="ngForm">
+            <form #loginForm="ngForm" (ngSubmit)="login()">
             <div class="login-form mx-auto">
                 <h2 class="login-header">Đăng nhập</h2>
                 <div class="form-group">
@@ -16,24 +16,34 @@
                     <div class="divider-nospace"></div>
                 </div>
                 <div class="mt-5"></div>
-                <div class="form-group password-field">
+                <div class="form-group">
                     <label for="password">Mật khẩu</label>
-                    <input type="{{ showPassword ? 'text' : 'password' }}"
-                        [(ngModel)]="password"                            
-                        name="password"
-                        placeholder="Ít nhất 3 ký tự" 
-                        class="form-control" id="password">
-                    <i class="password-toggle fas" [ngClass]="showPassword ? 
-                        'fa-eye' : 'fa-eye-slash'" (click)="togglePassword()"></i>
+                    <div class="input-group">
+                        <input type="{{ showPassword ? 'text' : 'password' }}"
+                            [(ngModel)]="password"                            
+                            name="password"
+                            placeholder="Ít nhất 3 ký tự" 
+                            class="form-control" 
+                            id="password"
+                            style="border-right: none;">
+                        <button 
+                            class="btn btn-outline-secondary" 
+                            type="button"
+                            (click)="togglePassword()"
+                            style="border-left: none; background: white;">
+                            <i class="fas" [ngClass]="showPassword ? 'fa-eye-slash' : 'fa-eye'"></i>
+                        </button>
+                    </div>
                     <div class="divider-nospace"></div>
-                </div>                
+                </div>
                 <div class="form-group">
                     <div class="form-check checkbox-text">
-                      <span style="display: flex;">
+                      <span style="display: flex; align-items: center;">
                         <input type="checkbox" 
                             class="form-check-input" 
                             id="remember" 
-                            [(ngModel)]="rememberMe">
+                            [(ngModel)]="rememberMe"
+                            name="rememberMe">
                         <label class="form-check-label text-start" for="remember">
                           Ghi nhớ đăng nhập</label>
                       </span>
@@ -42,8 +52,7 @@
                   </div>
                   
                   <button 
-                    type="button" 
-                    (click)="login()"
+                    type="submit" 
                     class="login-button">Đăng nhập</button>
                   
                   <!-- Social Login Section -->

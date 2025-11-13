@@ -8,10 +8,12 @@ import { PropertyService } from '../../services/property.service';
 import { UserService } from '../../services/user.service';
 import { TokenService } from '../../services/token.service';
 import { AuthStateService } from '../../services/auth-state.service';
+import { SimpleModalService } from '../../services/simple-modal.service';
 import { LocationService } from '../../services/location.service';
 import { CityService } from '../../services/city.service';
 import { Location } from '../../models/location';
 import { City } from '../../models/city';
+import { environment } from '../../../environments/environment';
 
 @Component({
   selector: 'app-property-list',
@@ -142,7 +144,8 @@ export class PropertyListComponent implements OnInit, OnDestroy {
     private cityService: CityService,
     private userService: UserService,
     private tokenService: TokenService,
-    private authStateService: AuthStateService
+    private authStateService: AuthStateService,
+    private modalService: SimpleModalService
   ) {}
 
   // Navigate to enhanced filter page
@@ -151,19 +154,26 @@ export class PropertyListComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
-    // Check login status
-    this.checkLoginStatus();
-    
-    // Subscribe to auth state changes
+    // Subscribe to auth state changes (BehaviorSubject will emit current value immediately)
     this.authStateService.loginState$.subscribe((isLoggedIn: boolean) => {
+      console.log('🔐 PROPERTY-LIST: Auth state changed');
+      console.log('   isLoggedIn:', isLoggedIn);
       this.isLoggedIn = isLoggedIn;
       if (isLoggedIn) {
-        this.userId = this.tokenService.getUserId();
+        console.log('🔍 Decoding JWT to get userId...');
+        const startTime = performance.now();
+        this.userId = this.tokenService.getUserId(); // Decode JWT for userId
+        const decodeTime = performance.now() - startTime;
+        console.log(`✅ User ID decoded in ${decodeTime.toFixed(2)}ms:`, this.userId);
+        console.log('🔍 Checking favorites for all properties...');
         this.checkAllFavorites();
       } else {
+        console.log('❌ User not logged in → Clearing favorite map');
         this.isFavoriteMap.clear();
       }
     });
+    
+    // NOTE: Don't call checkLoginStatus() separately - subscription handles initial state
     
     // Check if we have type parameter (type-specific list) or query parameters (search)
     this.route.params.subscribe(params => {
@@ -185,11 +195,21 @@ export class PropertyListComponent implements OnInit, OnDestroy {
   }
   
   checkLoginStatus(): void {
+    console.log('🔐 PROPERTY-LIST: Checking login status');
     const token = this.tokenService.getToken();
-    this.isLoggedIn = !!token && !this.tokenService.isTokenExpired();
+    // Don't check expiration - interceptor handles token refresh automatically
+    this.isLoggedIn = !!token;
+    console.log('   Has token:', !!token);
+    console.log('   isLoggedIn:', this.isLoggedIn);
     
     if (this.isLoggedIn) {
-      this.userId = this.tokenService.getUserId();
+      console.log('🔍 Decoding JWT to get userId...');
+      const startTime = performance.now();
+      this.userId = this.tokenService.getUserId(); // Decode JWT for userId
+      const decodeTime = performance.now() - startTime;
+      console.log(`✅ User ID decoded in ${decodeTime.toFixed(2)}ms:`, this.userId);
+    } else {
+      console.log('❌ User not logged in');
     }
   }
   
@@ -198,17 +218,28 @@ export class PropertyListComponent implements OnInit, OnDestroy {
       return;
     }
     
-    const token = this.tokenService.getToken();
-    if (!token) return;
+    // Only check properties that we haven't checked yet (cache optimization)
+    const uncheckedProperties = this.properties.filter(
+      property => !this.isFavoriteMap.has(property.id)
+    );
     
-    // Check favorite status for each property
-    this.properties.forEach(property => {
-      this.userService.checkFavorite(this.userId, property.id, token).subscribe({
+    if (uncheckedProperties.length === 0) {
+      console.log('✅ All favorites already cached - skipping API calls');
+      return;
+    }
+    
+    console.log(`🔍 Checking favorites for ${uncheckedProperties.length} uncached properties`);
+    
+    // Check favorite status for each unchecked property
+    uncheckedProperties.forEach(property => {
+      this.userService.checkFavorite(this.userId, property.id).subscribe({
         next: (response) => {
           this.isFavoriteMap.set(property.id, response.data === true);
         },
         error: (error) => {
           console.error(`❌ Error checking favorite status for property ${property.id}:`, error);
+          // Cache as false to avoid retrying
+          this.isFavoriteMap.set(property.id, false);
         }
       });
     });
@@ -220,8 +251,8 @@ export class PropertyListComponent implements OnInit, OnDestroy {
     
     // Check if user is logged in
     if (!this.isLoggedIn) {
-      alert('Vui lòng đăng nhập để sử dụng tính năng này!');
-      this.router.navigate(['/login']);
+      console.warn('⚠️ PropertyList: Anonymous user trying to toggle favorite');
+      this.modalService.showLoginRequired();
       return;
     }
 
@@ -231,19 +262,14 @@ export class PropertyListComponent implements OnInit, OnDestroy {
     }
 
     this.isLoadingWishlistMap.set(propertyId, true);
-    const token = this.tokenService.getToken();
-    if (!token) {
-      alert('Vui lòng đăng nhập lại!');
-      this.isLoadingWishlistMap.set(propertyId, false);
-      return;
-    }
-
+    
+    // Note: Token expiration is handled by TokenInterceptor automatically
     const isFavorite = this.isFavoriteMap.get(propertyId) || false;
 
     if (isFavorite) {
       // Remove from favorites
       console.log('🔵 Removing property from wishlist:', propertyId);
-      this.userService.removeFromFavorites(this.userId, propertyId, token).subscribe({
+      this.userService.removeFromFavorites(this.userId, propertyId).subscribe({
         next: (response) => {
           console.log('✅ Successfully removed from favorites:', response);
           this.isFavoriteMap.set(propertyId, false);
@@ -251,14 +277,14 @@ export class PropertyListComponent implements OnInit, OnDestroy {
         },
         error: (error) => {
           console.error('❌ Error removing from favorites:', error);
-          alert('Có lỗi xảy ra khi xóa khỏi danh sách yêu thích!');
+          this.modalService.showError('Có lỗi xảy ra khi xóa khỏi danh sách yêu thích!');
           this.isLoadingWishlistMap.set(propertyId, false);
         }
       });
     } else {
       // Add to favorites
       console.log('🔵 Adding property to wishlist:', propertyId);
-      this.userService.addToFavorites(this.userId, propertyId, token).subscribe({
+      this.userService.addToFavorites(this.userId, propertyId).subscribe({
         next: (response) => {
           console.log('✅ Successfully added to favorites:', response);
           this.isFavoriteMap.set(propertyId, true);
@@ -266,7 +292,7 @@ export class PropertyListComponent implements OnInit, OnDestroy {
         },
         error: (error) => {
           console.error('❌ Error adding to favorites:', error);
-          alert('Có lỗi xảy ra khi thêm vào danh sách yêu thích!');
+          this.modalService.showError('Có lỗi xảy ra khi thêm vào danh sách yêu thích!');
           this.isLoadingWishlistMap.set(propertyId, false);
         }
       });
@@ -685,7 +711,9 @@ export class PropertyListComponent implements OnInit, OnDestroy {
       if (imageUrl.startsWith('http')) {
         return imageUrl;
       }
-      return `http://localhost:8080${imageUrl}`;
+      // Ensure we have a leading slash for relative paths
+      const cleanPath = imageUrl.startsWith('/') ? imageUrl : `/${imageUrl}`;
+      return `${environment.apiBaseUrl || 'http://localhost:8080'}${cleanPath}`;
     }
     return '/assets/img/placeholder.svg';
   }
@@ -695,7 +723,9 @@ export class PropertyListComponent implements OnInit, OnDestroy {
       if (property.thumbnailImageUrl.startsWith('http')) {
         return property.thumbnailImageUrl;
       }
-      return `http://localhost:8080${property.thumbnailImageUrl}`;
+      // Ensure we have a leading slash for relative paths
+      const cleanPath = property.thumbnailImageUrl.startsWith('/') ? property.thumbnailImageUrl : `/${property.thumbnailImageUrl}`;
+      return `${environment.apiBaseUrl || 'http://localhost:8080'}${cleanPath}`;
     }
     return '/assets/img/placeholder.svg';
   }

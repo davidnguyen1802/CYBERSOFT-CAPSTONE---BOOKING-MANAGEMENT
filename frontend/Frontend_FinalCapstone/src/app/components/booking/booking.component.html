@@ -1,0 +1,205 @@
+<app-header></app-header>
+
+<div class="booking-container">
+  <div class="booking-card">
+    <h1>🏨 Create Booking</h1>
+    <p class="subtitle">Book your perfect stay</p>
+
+    <div class="info-box">
+      <p><strong>ℹ️ Booking Process (Request-to-Book):</strong></p>
+      <p>1. Fill in your booking details below</p>
+      <p>2. ⭐ Apply promo code (if any) - discount applied immediately!</p>
+      <p>3. Submit booking request (no payment required yet)</p>
+      <p>4. Wait for host approval - you'll be notified</p>
+      <p>5. After approval: Pay discounted price within 24 hours</p>
+    </div>
+
+    <form (ngSubmit)="onSubmit()" #bookingForm="ngForm">
+      <!-- PropertyId is auto-filled from queryParams, hidden from user -->
+      <input 
+        type="hidden" 
+        id="propertyId" 
+        name="propertyId"
+        [(ngModel)]="bookingData.propertyId"
+        required>
+
+      <!-- Date Range Picker -->
+      <div class="form-group">
+        <label>Chọn ngày của bạn *</label>
+        <app-date-range-picker
+          [minDate]="today"
+          [maxDate]="oneYearLater"
+          [minNights]="1"
+          [maxNights]="30"
+          [blockedDates]="blockedDates"
+          [initialCheckIn]="initialCheckIn"
+          [initialCheckOut]="initialCheckOut"
+          (rangeSelected)="onRangeSelected($event)">
+        </app-date-range-picker>
+      </div>
+
+      <div class="row">
+        <div class="form-group">
+          <label for="numAdults">Người lớn</label>
+          <input 
+            type="number" 
+            id="numAdults" 
+            name="numAdults"
+            [(ngModel)]="bookingData.numAdults"
+            min="1"
+            class="form-control">
+          <small class="text-muted">Từ 18 tuổi trở lên</small>
+        </div>
+
+        <div class="form-group">
+          <label for="numChildren">Trẻ em và trẻ vị thành niên</label>
+          <input 
+            type="number" 
+            id="numChildren" 
+            name="numChildren"
+            [(ngModel)]="bookingData.numChildren"
+            min="0"
+            class="form-control">
+          <small class="text-muted">Từ 2-17 tuổi</small>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="form-group">
+          <label for="num_infant">Trẻ sơ sinh</label>
+          <input 
+            type="number" 
+            id="num_infant" 
+            name="num_infant"
+            [(ngModel)]="bookingData.num_infant"
+            min="0"
+            class="form-control">
+          <small class="text-muted">Dưới 2 tuổi</small>
+        </div>
+      </div>
+
+      <!-- Pet Checkbox - Chỉ hiển thị nếu property cho phép pet -->
+      <div class="form-group" *ngIf="property && property.maxPets > 0">
+        <label class="checkbox-label">
+          <input 
+            type="checkbox" 
+            id="petCheckbox"
+            [(ngModel)]="isPetChecked"
+            (change)="togglePetCheckbox()"
+            name="petCheckbox">
+          <span>Bạn có mang theo thú cưng không?</span>
+        </label>
+        <small class="text-muted d-block mt-1">
+          (Tối đa {{ property.maxPets }} thú cưng)
+        </small>
+      </div>
+
+      <!-- Pet Count Input - Chỉ hiển thị khi checkbox được tick -->
+      <div class="form-group" *ngIf="isPetChecked && property && property.maxPets > 0">
+        <label for="numPet">Số lượng thú cưng</label>
+        <input 
+          type="number" 
+          id="numPet" 
+          name="numPet"
+          [(ngModel)]="bookingData.numPet"
+          [min]="1"
+          [max]="property.maxPets"
+          class="form-control">
+        <small class="text-muted">Tối đa {{ property.maxPets }} con</small>
+      </div>
+
+      <!-- ⭐ OLD: Promotion Section (REMOVED in v2.0 - now separate page) -->
+      <!-- Promotions are now selected on /booking/select-promotion page -->
+      <!--
+      <div class="promotion-section" *ngIf="myPromotions.length > 0">
+        <h3>🎫 Apply Promotion Code</h3>
+        
+        <div class="form-group">
+          <label for="promotionCode">Select a promotion (optional):</label>
+          <select 
+            id="promotionCode" 
+            name="promotionCode"
+            [(ngModel)]="selectedPromotionCode"
+            (change)="selectPromotion(selectedPromotionCode)"
+            [disabled]="validatingPromotion || !bookingData.checkIn || !bookingData.checkOut"
+            class="form-control">
+            <option value="">No promotion</option>
+            <option *ngFor="let promo of myPromotions" [value]="promo.promotionCode">
+              {{ promo.promotionName }} ({{ promo.promotionCode }})<span *ngIf="promo.discountPercentage"> - {{ promo.discountPercentage }}%</span>
+            </option>
+          </select>
+
+          <small class="text-muted d-block mt-1" *ngIf="!bookingData.checkIn || !bookingData.checkOut">
+            ℹ️ Select dates first to see available promotions
+          </small>
+
+          <div *ngIf="validatingPromotion" class="loading-inline mt-2">
+            <span class="spinner-sm"></span> Validating promotion...
+          </div>
+        </div>
+      </div>
+      -->
+
+      <!-- ⭐ OLD: Discount Preview (REMOVED - now shown in promotion selection page) -->
+      <!--
+        <div *ngIf="promotionPreview && promotionPreview.isValid" class="discount-preview">
+          <h4>💰 Price Breakdown</h4>
+          <div class="price-row">
+            <span>Original Price:</span>
+            <span>{{ promotionPreview.originalAmount.toLocaleString('vi-VN') }} VND</span>
+          </div>
+          <div class="price-row discount">
+            <span>Promotion Discount ({{ promotionPreview.promotionCode }}):</span>
+            <span class="discount-amount">-{{ promotionPreview.discountAmount.toLocaleString('vi-VN') }} VND</span>
+          </div>
+          <hr>
+          <div class="price-row total">
+            <span><strong>Final Price:</strong></span>
+            <span class="final-amount"><strong>{{ promotionPreview.finalAmount.toLocaleString('vi-VN') }} VND</strong></span>
+          </div>
+          <div class="savings">
+            ✅ You save {{ promotionPreview.discountAmount.toLocaleString('vi-VN') }} VND!
+          </div>
+        </div>
+      -->
+
+
+      <div class="form-group">
+        <label for="notes">Special Requests</label>
+        <textarea 
+          id="notes" 
+          name="notes"
+          [(ngModel)]="bookingData.notes"
+          rows="3"
+          placeholder="Any special requests..."
+          maxlength="1000"
+          class="form-control"></textarea>
+      </div>
+
+      <button 
+        type="submit" 
+        class="btn-primary"
+        [disabled]="loading || !bookingForm.form.valid">
+        <span *ngIf="!loading">🎁 Choose Your Promotion</span>
+        <span *ngIf="loading">Checking availability...</span>
+      </button>
+    </form>
+
+    <div class="loading" *ngIf="loading">
+      <div class="spinner"></div>
+      <p>Processing your booking...</p>
+    </div>
+
+    <div class="result success" *ngIf="successMessage">
+      <h3>✅ Success!</h3>
+      <p>{{ successMessage }}</p>
+    </div>
+
+    <div class="result error" *ngIf="errorMessage">
+      <h3>❌ Error</h3>
+      <p>{{ errorMessage }}</p>
+    </div>
+  </div>
+</div>
+
+<app-footer></app-footer>

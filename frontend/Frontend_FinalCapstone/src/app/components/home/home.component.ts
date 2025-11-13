@@ -195,7 +195,7 @@ export class HomeComponent implements OnInit, OnDestroy {
   }
 
   goToEnhancedFilter(): void {
-    this.router.navigate(['/properties']);
+    this.router.navigate(['/properties/filter']);
   }
 
   // ==================== UTILITIES ====================

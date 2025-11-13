@@ -1,0 +1,118 @@
+<div class="date-range-picker" #calendarContainer>
+  <!-- Input Field -->
+  <div class="date-range-input-wrapper" (click)="toggleCalendar()" [class.disabled]="disabled">
+    <div class="date-range-input">
+      <i class="bi bi-calendar-event calendar-icon"></i>
+      <span class="date-text" [class.placeholder]="!checkIn || !checkOut">
+        {{ getDisplayText() }}
+      </span>
+      <button 
+        type="button" 
+        class="clear-btn" 
+        *ngIf="checkIn && checkOut"
+        (click)="clearSelection(); $event.stopPropagation()"
+        aria-label="Clear dates">
+        <i class="bi bi-x-circle"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- Calendar Dropdown -->
+  <div class="calendar-dropdown" *ngIf="isOpen">
+    <div class="calendar-header">
+      <div class="year-display">{{ currentMonth1.getFullYear() }}</div>
+    </div>
+    
+    <div class="calendar-navigation">
+      <button 
+        type="button" 
+        class="nav-btn prev" 
+        (click)="prevMonth()"
+        aria-label="Previous month">
+        <i class="bi bi-chevron-left"></i>
+      </button>
+      
+      <button 
+        type="button" 
+        class="nav-btn next" 
+        (click)="nextMonth()"
+        aria-label="Next month">
+        <i class="bi bi-chevron-right"></i>
+      </button>
+    </div>
+
+    <!-- Calendar Grids -->
+    <div class="calendar-grids">
+      <!-- Month 1 -->
+      <div class="calendar-month">
+        <div class="month-label">{{ getMonthYearString(currentMonth1) }}</div>
+        <div class="weekdays">
+          <div class="weekday" *ngFor="let day of weekDays">{{ day }}</div>
+        </div>
+        <div class="days-grid">
+          <button
+            type="button"
+            class="day-btn"
+            *ngFor="let date of calendarDays1"
+            [class.other-month]="isInOtherMonth(date, currentMonth1)"
+            [class.disabled]="isDateDisabled(date)"
+            [class.range-start]="isRangeStart(date)"
+            [class.range-end]="isRangeEnd(date)"
+            [class.in-range]="isInRange(date)"
+            [class.blocked]="isDateBlocked(date)"
+            [class.today]="isToday(date)"
+            [attr.aria-label]="date.toLocaleDateString()"
+            [disabled]="isDateDisabled(date)"
+            (click)="onDateClick(date)"
+            (mouseenter)="onDateHover(date)"
+            (mouseleave)="onDateLeave()">
+            {{ date.getDate() }}
+          </button>
+        </div>
+      </div>
+
+      <!-- Month 2 -->
+      <div class="calendar-month">
+        <div class="month-label">{{ getMonthYearString(currentMonth2) }}</div>
+        <div class="weekdays">
+          <div class="weekday" *ngFor="let day of weekDays">{{ day }}</div>
+        </div>
+        <div class="days-grid">
+          <button
+            type="button"
+            class="day-btn"
+            *ngFor="let date of calendarDays2"
+            [class.other-month]="isInOtherMonth(date, currentMonth2)"
+            [class.disabled]="isDateDisabled(date)"
+            [class.range-start]="isRangeStart(date)"
+            [class.range-end]="isRangeEnd(date)"
+            [class.in-range]="isInRange(date)"
+            [class.blocked]="isDateBlocked(date)"
+            [class.today]="isToday(date)"
+            [attr.aria-label]="date.toLocaleDateString()"
+            [disabled]="isDateDisabled(date)"
+            (click)="onDateClick(date)"
+            (mouseenter)="onDateHover(date)"
+            (mouseleave)="onDateLeave()">
+            {{ date.getDate() }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Nights Count and Confirm Button -->
+    <div class="calendar-footer">
+      <div class="nights-info" *ngIf="checkIn && checkOut">
+        <span class="nights-count">{{ getNightsCount() }} {{ getNightsCount() === 1 ? 'night' : 'nights' }}</span>
+      </div>
+      <button
+        type="button"
+        class="confirm-btn"
+        [disabled]="!isSelectionValid()"
+        (click)="onConfirmClick()">
+        Xác nhận
+      </button>
+    </div>
+  </div>
+</div>
+

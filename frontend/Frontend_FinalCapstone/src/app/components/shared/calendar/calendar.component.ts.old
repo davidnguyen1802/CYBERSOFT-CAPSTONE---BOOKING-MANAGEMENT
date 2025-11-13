@@ -1,0 +1,469 @@
+import { Component, EventEmitter, Input, OnInit, OnChanges, SimpleChanges, Output } from '@angular/core';
+import { Booking } from '../../../models/booking';
+
+export type ViewMode = 'Day' | 'Week' | 'Month';
+
+interface CalendarDay {
+  date: Date;
+  dayNumber: number;
+  isCurrentMonth: boolean;
+  isToday: boolean;
+  bookings: Booking[];
+}
+
+interface BookingBar {
+  booking: Booking;
+  startDate: Date;
+  endDate: Date;
+  spanDays: number;
+  row: number;
+  startCol: number;
+  stackIndex: number; // For vertical stacking when multiple bookings in same row
+  dayIndex: number; // Which calendar day this bar starts at
+  remainingDaysInRow: number; // How many days to span in current row
+}
+
+@Component({
+  selector: 'app-calendar',
+  templateUrl: './calendar.component.html',
+  styleUrls: ['./calendar.component.scss']
+})
+export class CalendarComponent implements OnInit, OnChanges {
+  @Input() bookings: Booking[] = [];
+  @Input() selectedStatuses: string[] = []; // Changed to array
+  @Input() statusOptions: any[] = [];
+  @Input() totalElements: number = 0;
+  @Output() onDateClick = new EventEmitter<Date>();
+  @Output() onStatusChange = new EventEmitter<string>();
+
+  currentDate: Date = new Date();
+  viewMode: ViewMode = 'Month';
+  calendarDays: CalendarDay[] = [];
+  weekDays = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'];
+  
+  // Multi-day booking bars
+  multiDayBookingBars: BookingBar[] = [];
+  
+  // Month mini calendar for sidebar
+  miniCalendarDate: Date = new Date();
+  miniCalendarDays: CalendarDay[] = [];
+
+  ngOnInit() {
+    this.generateCalendar();
+    this.generateMiniCalendar();
+    this.generateBookingBars();
+  }
+
+  ngOnChanges(changes: SimpleChanges) {
+    if (changes['bookings'] || changes['selectedStatuses']) {
+      this.generateCalendar();
+      this.generateBookingBars();
+      console.log('📅 Bookings updated:', this.bookings.length, 'bookings');
+      console.log('📊 Booking bars generated:', this.multiDayBookingBars.length, 'bars');
+    }
+  }
+
+  setViewMode(mode: ViewMode) {
+    this.viewMode = mode;
+    this.generateCalendar();
+  }
+
+  previousPeriod() {
+    if (this.viewMode === 'Month') {
+      this.currentDate = new Date(this.currentDate.getFullYear(), this.currentDate.getMonth() - 1, 1);
+    } else if (this.viewMode === 'Week') {
+      this.currentDate = new Date(this.currentDate.getTime() - 7 * 24 * 60 * 60 * 1000);
+    } else if (this.viewMode === 'Day') {
+      this.currentDate = new Date(this.currentDate.getTime() - 24 * 60 * 60 * 1000);
+    }
+    this.generateCalendar();
+  }
+
+  nextPeriod() {
+    if (this.viewMode === 'Month') {
+      this.currentDate = new Date(this.currentDate.getFullYear(), this.currentDate.getMonth() + 1, 1);
+    } else if (this.viewMode === 'Week') {
+      this.currentDate = new Date(this.currentDate.getTime() + 7 * 24 * 60 * 60 * 1000);
+    } else if (this.viewMode === 'Day') {
+      this.currentDate = new Date(this.currentDate.getTime() + 24 * 60 * 60 * 1000);
+    }
+    this.generateCalendar();
+  }
+
+  goToToday() {
+    this.currentDate = new Date();
+    this.generateCalendar();
+  }
+
+  generateCalendar() {
+    if (this.viewMode === 'Month') {
+      this.generateMonthView();
+    } else if (this.viewMode === 'Week') {
+      this.generateWeekView();
+    } else {
+      this.generateDayView();
+    }
+  }
+
+  generateMonthView() {
+    const year = this.currentDate.getFullYear();
+    const month = this.currentDate.getMonth();
+    
+    // First day of month
+    const firstDay = new Date(year, month, 1);
+    // Last day of month
+    const lastDay = new Date(year, month + 1, 0);
+    
+    // Get day of week (0=Sunday, 1=Monday, etc)
+    let firstDayOfWeek = firstDay.getDay();
+    // Convert to Monday-based (0=Monday)
+    firstDayOfWeek = firstDayOfWeek === 0 ? 6 : firstDayOfWeek - 1;
+    
+    const daysInMonth = lastDay.getDate();
+    const daysInPrevMonth = new Date(year, month, 0).getDate();
+    
+    this.calendarDays = [];
+    
+    // Previous month days
+    for (let i = firstDayOfWeek - 1; i >= 0; i--) {
+      const date = new Date(year, month - 1, daysInPrevMonth - i);
+      this.calendarDays.push(this.createCalendarDay(date, false));
+    }
+    
+    // Current month days
+    for (let day = 1; day <= daysInMonth; day++) {
+      const date = new Date(year, month, day);
+      this.calendarDays.push(this.createCalendarDay(date, true));
+    }
+    
+    // Next month days to fill grid (6 rows x 7 days = 42)
+    const remainingDays = 42 - this.calendarDays.length;
+    for (let day = 1; day <= remainingDays; day++) {
+      const date = new Date(year, month + 1, day);
+      this.calendarDays.push(this.createCalendarDay(date, false));
+    }
+  }
+
+  generateWeekView() {
+    // Get Monday of current week
+    const currentDay = this.currentDate.getDay();
+    const monday = new Date(this.currentDate);
+    monday.setDate(this.currentDate.getDate() - (currentDay === 0 ? 6 : currentDay - 1));
+    
+    this.calendarDays = [];
+    for (let i = 0; i < 7; i++) {
+      const date = new Date(monday);
+      date.setDate(monday.getDate() + i);
+      this.calendarDays.push(this.createCalendarDay(date, true));
+    }
+  }
+
+  generateDayView() {
+    this.calendarDays = [this.createCalendarDay(new Date(this.currentDate), true)];
+  }
+
+  createCalendarDay(date: Date, isCurrentMonth: boolean): CalendarDay {
+    const today = new Date();
+    const isToday = date.toDateString() === today.toDateString();
+    
+    // Filter bookings for this day
+    const dayBookings = this.bookings.filter(booking => {
+      const checkIn = new Date(booking.checkIn);
+      const checkOut = new Date(booking.checkOut);
+      
+      // Check if this date falls within booking range
+      const dateOnly = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+      const checkInOnly = new Date(checkIn.getFullYear(), checkIn.getMonth(), checkIn.getDate());
+      const checkOutOnly = new Date(checkOut.getFullYear(), checkOut.getMonth(), checkOut.getDate());
+      
+      return dateOnly >= checkInOnly && dateOnly <= checkOutOnly;
+    });
+    
+    return {
+      date,
+      dayNumber: date.getDate(),
+      isCurrentMonth,
+      isToday,
+      bookings: dayBookings
+    };
+  }
+
+  generateMiniCalendar() {
+    const year = this.miniCalendarDate.getFullYear();
+    const month = this.miniCalendarDate.getMonth();
+    
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+    
+    let firstDayOfWeek = firstDay.getDay();
+    firstDayOfWeek = firstDayOfWeek === 0 ? 6 : firstDayOfWeek - 1;
+    
+    const daysInMonth = lastDay.getDate();
+    const daysInPrevMonth = new Date(year, month, 0).getDate();
+    
+    this.miniCalendarDays = [];
+    
+    // Previous month days
+    for (let i = firstDayOfWeek - 1; i >= 0; i--) {
+      const date = new Date(year, month - 1, daysInPrevMonth - i);
+      this.miniCalendarDays.push(this.createCalendarDay(date, false));
+    }
+    
+    // Current month days
+    for (let day = 1; day <= daysInMonth; day++) {
+      const date = new Date(year, month, day);
+      this.miniCalendarDays.push(this.createCalendarDay(date, true));
+    }
+  }
+
+  miniCalendarPrevMonth() {
+    this.miniCalendarDate = new Date(this.miniCalendarDate.getFullYear(), this.miniCalendarDate.getMonth() - 1, 1);
+    this.generateMiniCalendar();
+  }
+
+  miniCalendarNextMonth() {
+    this.miniCalendarDate = new Date(this.miniCalendarDate.getFullYear(), this.miniCalendarDate.getMonth() + 1, 1);
+    this.generateMiniCalendar();
+  }
+
+  selectMiniCalendarDay(day: CalendarDay) {
+    if (day.isCurrentMonth) {
+      this.currentDate = new Date(day.date);
+      this.viewMode = 'Day';
+      this.generateCalendar();
+    }
+  }
+
+  get currentMonthYear(): string {
+    return this.currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }).toUpperCase();
+  }
+
+  get miniCalendarMonthYear(): string {
+    return this.miniCalendarDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+  }
+
+  getBookingStatusClass(status: string | undefined): string {
+    if (!status) return 'booking-default';
+    const statusLower = status.toLowerCase();
+    return `booking-${statusLower}`;
+  }
+
+  getBookingTooltip(booking: Booking): string {
+    const propertyName = booking.propertyName || `Property #${booking.propertyId}`;
+    const userName = booking.userName || `User #${booking.userId}`;
+    const checkIn = new Date(booking.checkIn).toLocaleDateString();
+    const checkOut = new Date(booking.checkOut).toLocaleDateString();
+    return `Property: ${propertyName}\nGuest: ${userName}\nCheck-in: ${checkIn}\nCheck-out: ${checkOut}\nTotal: ${this.formatPrice(booking.totalPrice)}`;
+  }
+
+  handleDayClick(day: CalendarDay) {
+    if (day.isCurrentMonth) {
+      this.onDateClick.emit(day.date);
+    }
+  }
+
+  formatPrice(price: number | undefined): string {
+    if (!price) return '0 VND';
+    return `${price.toLocaleString('vi-VN')} VND`;
+  }
+
+  handleStatusChange(status: string) {
+    this.onStatusChange.emit(status);
+  }
+
+  getBookingCountByStatus(statusValue: string): number {
+    // For multi-select, count from current bookings
+    if (statusValue === 'ALL') {
+      return this.selectedStatuses.length === 0 ? this.totalElements : this.bookings.length;
+    }
+    return this.bookings.filter(b => b.status === statusValue).length;
+  }
+
+  isStatusSelected(status: string): boolean {
+    if (status === 'ALL') {
+      return this.selectedStatuses.length === 0;
+    }
+    return this.selectedStatuses.includes(status);
+  }
+
+  // Generate multi-day booking bars for Google Calendar-style display
+  generateBookingBars() {
+    if (this.calendarDays.length === 0) return;
+
+    this.multiDayBookingBars = [];
+    const processedBookings = new Set<number>();
+
+    console.log('🔄 generateBookingBars called');
+    console.log('  📅 Calendar days:', this.calendarDays.length);
+    console.log('  📦 Total bookings:', this.bookings.length);
+
+    // Get first and last date of calendar view
+    const firstDate = this.calendarDays[0].date;
+    const lastDate = this.calendarDays[this.calendarDays.length - 1].date;
+
+    console.log('  📍 View range:', firstDate.toDateString(), 'to', lastDate.toDateString());
+
+    // Process each booking
+    this.bookings.forEach(booking => {
+      if (!booking.id || processedBookings.has(booking.id)) return;
+
+      const checkIn = new Date(booking.checkIn);
+      const checkOut = new Date(booking.checkOut);
+
+      console.log('  ✨ Processing booking:', booking.id, booking.userName, checkIn.toDateString(), '-', checkOut.toDateString());
+
+      // Set times to midnight for date comparison
+      const checkInDate = new Date(checkIn.getFullYear(), checkIn.getMonth(), checkIn.getDate());
+      const checkOutDate = new Date(checkOut.getFullYear(), checkOut.getMonth(), checkOut.getDate());
+      const viewFirstDate = new Date(firstDate.getFullYear(), firstDate.getMonth(), firstDate.getDate());
+      const viewLastDate = new Date(lastDate.getFullYear(), lastDate.getMonth(), lastDate.getDate());
+
+      // Skip if booking doesn't overlap with calendar view
+      if (checkOutDate < viewFirstDate || checkInDate > viewLastDate) return;
+
+      // Calculate visible start and end dates
+      const visibleStart = checkInDate < viewFirstDate ? viewFirstDate : checkInDate;
+      const visibleEnd = checkOutDate > viewLastDate ? viewLastDate : checkOutDate;
+
+      // Calculate span days
+      const spanMs = visibleEnd.getTime() - visibleStart.getTime();
+      const spanDays = Math.ceil(spanMs / (1000 * 60 * 60 * 24)) + 1;
+
+      // Find start column (day of week: 0=Mon, 6=Sun)
+      const startDayIndex = this.calendarDays.findIndex(day => 
+        day.date.toDateString() === visibleStart.toDateString()
+      );
+
+      if (startDayIndex === -1) return;
+
+      // Calculate remaining days from start to end of current week
+      const daysUntilWeekEnd = 7 - (startDayIndex % 7);
+      const remainingDaysInRow = Math.min(spanDays, daysUntilWeekEnd);
+
+      // Calculate row (which week)
+      const row = Math.floor(startDayIndex / 7) + 1;
+
+      // Calculate column within the week
+      const startCol = (startDayIndex % 7) + 1;
+
+      // Create booking bar for this day
+      this.multiDayBookingBars.push({
+        booking,
+        startDate: visibleStart,
+        endDate: visibleEnd,
+        spanDays,
+        row,
+        startCol,
+        stackIndex: 0,
+        dayIndex: startDayIndex,
+        remainingDaysInRow
+      });
+
+      processedBookings.add(booking.id);
+    });
+
+    // Calculate stackIndex for overlapping bookings
+    // Group by the specific day they start on
+    const dayBookings: { [key: number]: BookingBar[] } = {};
+    this.multiDayBookingBars.forEach(bar => {
+      if (!dayBookings[bar.dayIndex]) {
+        dayBookings[bar.dayIndex] = [];
+      }
+      dayBookings[bar.dayIndex].push(bar);
+    });
+
+    // For each day, assign stackIndex based on order
+    Object.keys(dayBookings).forEach(dayKey => {
+      const dayIndex = parseInt(dayKey);
+      const bars = dayBookings[dayIndex];
+      
+      // Sort by start column, then by span (longer bookings first)
+      bars.sort((a, b) => {
+        if (a.startCol !== b.startCol) return a.startCol - b.startCol;
+        return b.spanDays - a.spanDays;
+      });
+      
+      // Assign stack index
+      bars.forEach((bar, index) => {
+        bar.stackIndex = index;
+      });
+    });
+
+    // Sort by row and start column
+    this.multiDayBookingBars.sort((a, b) => {
+      if (a.row !== b.row) return a.row - b.row;
+      if (a.startCol !== b.startCol) return a.startCol - b.startCol;
+      return a.stackIndex - b.stackIndex;
+    });
+
+    console.log('📊 Generated booking bars:', this.multiDayBookingBars.length);
+    console.log('📋 Booking bars detail:', this.multiDayBookingBars.map(bar => ({
+      userName: bar.booking.userName,
+      dayIndex: bar.dayIndex,
+      row: bar.row,
+      col: bar.startCol,
+      span: bar.remainingDaysInRow,
+      stackIndex: bar.stackIndex
+    })));
+  }
+
+  // Helper methods for template
+  getDayName(date: Date): string {
+    const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    return days[date.getDay()];
+  }
+
+  formatTime(date: Date | string): string {
+    const d = new Date(date);
+    return d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+  }
+
+  formatDate(date: Date | string): string {
+    const d = new Date(date);
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  }
+
+  formatFullDate(date: Date): string {
+    return date.toLocaleDateString('en-US', { 
+      weekday: 'long', 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric' 
+    });
+  }
+
+  formatDateTime(date: Date | string): string {
+    const d = new Date(date);
+    return d.toLocaleString('en-US', { 
+      month: 'short', 
+      day: 'numeric', 
+      hour: '2-digit', 
+      minute: '2-digit' 
+    });
+  }
+
+  // Check if date is first day of booking
+  isFirstDayOfBooking(date: Date, booking: Booking): boolean {
+    const checkIn = new Date(booking.checkIn);
+    const checkInDate = new Date(checkIn.getFullYear(), checkIn.getMonth(), checkIn.getDate());
+    const currentDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    return checkInDate.getTime() === currentDate.getTime();
+  }
+
+  // Check if date is last day of booking
+  isLastDayOfBooking(date: Date, booking: Booking): boolean {
+    const checkOut = new Date(booking.checkOut);
+    const checkOutDate = new Date(checkOut.getFullYear(), checkOut.getMonth(), checkOut.getDate());
+    const currentDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    return checkOutDate.getTime() === currentDate.getTime();
+  }
+
+  // Get booking bars that should display in a specific day cell
+  getBookingBarsForDay(dayIndex: number): BookingBar[] {
+    return this.multiDayBookingBars.filter(bar => bar.dayIndex === dayIndex);
+  }
+
+  // Helper for template - Math object
+  Math = Math;
+}
+

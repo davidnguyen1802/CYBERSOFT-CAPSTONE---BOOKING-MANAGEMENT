@@ -1,5 +1,5 @@
 export const environment = {
     production: false,
-    // Updated base URL to local backend port 8080 (root)
-    apiBaseUrl: 'http://localhost:8080/',
+    // Backend API base URL (no trailing slash)
+    apiBaseUrl: 'http://localhost:8080',
 };

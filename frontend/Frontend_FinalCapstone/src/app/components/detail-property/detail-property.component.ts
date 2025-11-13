@@ -5,7 +5,9 @@ import { PropertyService } from '../../services/property.service';
 import { UserService } from '../../services/user.service';
 import { TokenService } from '../../services/token.service';
 import { AuthStateService } from '../../services/auth-state.service';
+import { SimpleModalService } from '../../services/simple-modal.service';
 import { environment } from '../../../environments/environment';
+import { DateRange } from '../shared/date-range-picker/date-range-picker.component';
 
 @Component({
   selector: 'app-detail-property',
@@ -26,15 +28,21 @@ export class DetailPropertyComponent implements OnInit {
   isLoadingWishlist: boolean = false;
   
   // Booking form data
-  selectedDates: string = '';
   guestCounts = {
     adults: 1,
-    teenagers: 0,
     children: 0,
     infants: 0,
     pets: 0
   };
   isPetChecked: boolean = false;
+  
+  // Date range picker data
+  today: Date;
+  oneYearLater: Date;
+  blockedDates: (Date | {start: Date; end: Date})[] = [];
+  initialCheckIn?: Date;
+  initialCheckOut?: Date;
+  selectedDateRange: DateRange | null = null;
   
   // Reviews
   displayedReviews: PropertyReview[] = [];
@@ -53,14 +61,25 @@ export class DetailPropertyComponent implements OnInit {
   hoverRating: number = 0;
   tempRating: number = 0;
   
+  // Image modal state
+  isImageModalOpen: boolean = false;
+  
   constructor(
     private propertyService: PropertyService,
     private activatedRoute: ActivatedRoute,
     private router: Router,
     private userService: UserService,
     private tokenService: TokenService,
-    private authStateService: AuthStateService
-  ) {}
+    private authStateService: AuthStateService,
+    private modalService: SimpleModalService
+  ) {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    this.today = today;
+    
+    this.oneYearLater = new Date(today);
+    this.oneYearLater.setFullYear(this.oneYearLater.getFullYear() + 1);
+  }
     
   ngOnInit() {
     // Get propertyId from URL
@@ -70,6 +89,8 @@ export class DetailPropertyComponent implements OnInit {
     }
     if (!isNaN(this.propertyId)) {
       this.loadPropertyDetail();
+      // Load blocked dates for this property
+      this.loadBlockedDates();
     }
     
     // Check login status and favorite state
@@ -91,7 +112,8 @@ export class DetailPropertyComponent implements OnInit {
   
   checkLoginAndFavoriteStatus(): void {
     const token = this.tokenService.getToken();
-    this.isLoggedIn = !!token && !this.tokenService.isTokenExpired();
+    // Don't check expiration - interceptor handles token refresh automatically
+    this.isLoggedIn = !!token;
     
     if (this.isLoggedIn && this.propertyId) {
       this.userId = this.tokenService.getUserId();
@@ -103,11 +125,8 @@ export class DetailPropertyComponent implements OnInit {
     if (!this.isLoggedIn || !this.propertyId) {
       return;
     }
-    
-    const token = this.tokenService.getToken();
-    if (!token) return;
-    
-    this.userService.checkFavorite(this.userId, this.propertyId, token).subscribe({
+
+    this.userService.checkFavorite(this.userId, this.propertyId).subscribe({
       next: (response) => {
         console.log('🔵 Check favorite status response:', response);
         this.isFavorite = response.data === true;
@@ -140,14 +159,21 @@ export class DetailPropertyComponent implements OnInit {
     this.loading = true;
     this.errorMsg = '';
     
+    console.log('🔵 [DETAIL-PROPERTY] Loading property detail, ID:', this.propertyId);
+    
     this.propertyService.getPropertyDetail(this.propertyId).subscribe({
       next: (response) => {
+        console.log('✅ [DETAIL-PROPERTY] Property loaded successfully:', response.data);
+        console.log('🖼️ [DETAIL-PROPERTY] Images array:', response.data?.images);
+        if (response.data?.images && response.data.images.length > 0) {
+          console.log('📸 [DETAIL-PROPERTY] First image URL:', response.data.images[0].imageUrl);
+        }
         this.property = response.data;
         this.loading = false;
         this.updateDisplayedReviews();
       },
       error: (error: any) => {
-        console.error('Error fetching property detail:', error);
+        console.error('❌ [DETAIL-PROPERTY] Error fetching property detail:', error);
         this.errorMsg = 'Không thể tải thông tin chi tiết property';
         this.loading = false;
       }
@@ -181,17 +207,24 @@ export class DetailPropertyComponent implements OnInit {
   getPropertyImage(index: number = 0): string {
     if (this.property && this.property.images && this.property.images.length > index) {
       const imageUrl = this.property.images[index].imageUrl;
+      console.log(`🖼️ [DETAIL-PROPERTY] Getting image [${index}]:`, imageUrl);
+      
       if (imageUrl.startsWith('http')) {
+        console.log('✅ [DETAIL-PROPERTY] Using absolute URL:', imageUrl);
         return imageUrl;
       }
-      // Remove leading slash if exists to avoid double slashes
-      const cleanPath = imageUrl.startsWith('/') ? imageUrl.substring(1) : imageUrl;
-      return `${environment.apiBaseUrl || 'http://localhost:8080'}${cleanPath}`;
+      // Ensure we have a leading slash for relative paths
+      const cleanPath = imageUrl.startsWith('/') ? imageUrl : `/${imageUrl}`;
+      const fullUrl = `${environment.apiBaseUrl || 'http://localhost:8080'}${cleanPath}`;
+      console.log('✅ [DETAIL-PROPERTY] Generated URL:', fullUrl);
+      return fullUrl;
     }
+    console.log('⚠️ [DETAIL-PROPERTY] No image found at index', index, '- using placeholder');
     return '/assets/img/placeholder.svg';
   }
 
   getCurrentImage(): string {
+    console.log(`🔍 [DETAIL-PROPERTY] getCurrentImage() called, current index: ${this.currentImageIndex}`);
     return this.getPropertyImage(this.currentImageIndex);
   }
 
@@ -201,8 +234,8 @@ export class DetailPropertyComponent implements OnInit {
     if (iconPath.startsWith('http')) {
       return iconPath;
     }
-    // Remove leading slash if exists to avoid double slashes
-    const cleanPath = iconPath.startsWith('/') ? iconPath.substring(1) : iconPath;
+    // Ensure we have a leading slash for relative paths
+    const cleanPath = iconPath.startsWith('/') ? iconPath : `/${iconPath}`;
     return `${environment.apiBaseUrl || 'http://localhost:8080'}${cleanPath}`;
   }
 
@@ -363,7 +396,7 @@ export class DetailPropertyComponent implements OnInit {
   submitReview(): void {
     // Validate form
     if (!this.reviewForm.name || !this.reviewForm.email || !this.reviewForm.rating || !this.reviewForm.comment) {
-      alert('Vui lòng điền đầy đủ thông tin đánh giá');
+      this.modalService.showError('Vui lòng điền đầy đủ thông tin đánh giá');
       return;
     }
 
@@ -382,15 +415,13 @@ export class DetailPropertyComponent implements OnInit {
   // ================ BOOKING METHODS ================
   getTotalGuests(): number {
     return this.guestCounts.adults + 
-           this.guestCounts.teenagers + 
            this.guestCounts.children + 
            this.guestCounts.infants;
   }
 
-  incrementGuest(type: 'adults' | 'teenagers' | 'children' | 'infants' | 'pets'): void {
+  incrementGuest(type: 'adults' | 'children' | 'infants' | 'pets'): void {
     const maxLimits = {
       adults: this.property?.maxAdults || 10,
-      teenagers: this.property?.maxChildren || 10,
       children: this.property?.maxChildren || 10,
       infants: this.property?.maxInfants || 10,
       pets: this.property?.maxPets || 0
@@ -401,22 +432,21 @@ export class DetailPropertyComponent implements OnInit {
     }
   }
 
-  decrementGuest(type: 'adults' | 'teenagers' | 'children' | 'infants' | 'pets'): void {
+  decrementGuest(type: 'adults' | 'children' | 'infants' | 'pets'): void {
     const minValue = type === 'adults' ? 1 : 0;
     if (this.guestCounts[type] > minValue) {
       this.guestCounts[type]--;
     }
   }
 
-  canDecrement(type: 'adults' | 'teenagers' | 'children' | 'infants' | 'pets'): boolean {
+  canDecrement(type: 'adults' | 'children' | 'infants' | 'pets'): boolean {
     const minValue = type === 'adults' ? 1 : 0;
     return this.guestCounts[type] > minValue;
   }
 
-  canIncrement(type: 'adults' | 'teenagers' | 'children' | 'infants' | 'pets'): boolean {
+  canIncrement(type: 'adults' | 'children' | 'infants' | 'pets'): boolean {
     const maxLimits = {
       adults: this.property?.maxAdults || 10,
-      teenagers: this.property?.maxChildren || 10,
       children: this.property?.maxChildren || 10,
       infants: this.property?.maxInfants || 10,
       pets: this.property?.maxPets || 0
@@ -433,20 +463,57 @@ export class DetailPropertyComponent implements OnInit {
     }
   }
 
+  // ================ DATE RANGE PICKER METHODS ================
+  loadBlockedDates(): void {
+    // Optional: Load blocked dates from API
+    // For now, using empty array - can be extended to call getPropertyBookings API
+    // and map confirmed/booked dates to blockedDates array
+    this.blockedDates = [];
+  }
+
+  onRangeSelected(range: DateRange): void {
+    if (range && range.checkIn && range.checkOut) {
+      this.selectedDateRange = range;
+      // Update initial dates for picker
+      this.initialCheckIn = range.checkIn;
+      this.initialCheckOut = range.checkOut;
+    }
+  }
+
+  // Helper to format Date to YYYY-MM-DD format
+  private formatDateToYYYYMMDD(date: Date | null): string {
+    if (!date) return '';
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }
+
   bookNow(): void {
-    // Validate dates
-    if (!this.selectedDates) {
-      alert('Vui lòng chọn ngày check-in và check-out');
+    // Check if user is logged in
+    if (!this.isLoggedIn) {
+      this.modalService.showError('Vui lòng đăng nhập để đặt phòng!');
+      this.router.navigate(['/login']);
       return;
     }
 
-    // Navigate to booking/order page with query params
-    this.router.navigate(['/orders'], { 
+    // Validate dates
+    if (!this.selectedDateRange || !this.selectedDateRange.checkIn || !this.selectedDateRange.checkOut) {
+      this.modalService.showError('Vui lòng chọn ngày check-in và check-out');
+      return;
+    }
+
+    // Convert dates to YYYY-MM-DD format
+    const checkInDate = this.formatDateToYYYYMMDD(this.selectedDateRange.checkIn);
+    const checkOutDate = this.formatDateToYYYYMMDD(this.selectedDateRange.checkOut);
+
+    // Navigate to booking page with query params (all data auto-filled)
+    this.router.navigate(['/booking'], { 
       queryParams: { 
         propertyId: this.propertyId,
-        dates: this.selectedDates,
+        checkIn: checkInDate,
+        checkOut: checkOutDate,
         adults: this.guestCounts.adults,
-        teenagers: this.guestCounts.teenagers,
         children: this.guestCounts.children,
         infants: this.guestCounts.infants,
         pets: this.guestCounts.pets
@@ -457,7 +524,7 @@ export class DetailPropertyComponent implements OnInit {
   toggleWishlist(): void {
     // Check if user is logged in
     if (!this.isLoggedIn) {
-      alert('Vui lòng đăng nhập để sử dụng tính năng này!');
+      this.modalService.showError('Vui lòng đăng nhập để sử dụng tính năng này!');
       this.router.navigate(['/login']);
       return;
     }
@@ -470,15 +537,15 @@ export class DetailPropertyComponent implements OnInit {
     this.isLoadingWishlist = true;
     const token = this.tokenService.getToken();
     if (!token) {
-      alert('Vui lòng đăng nhập lại!');
+      this.modalService.showError('Vui lòng đăng nhập lại!');
       this.isLoadingWishlist = false;
       return;
     }
 
     if (this.isFavorite) {
-      // Remove from favorites
+      // Remove from favorites (interceptor handles Authorization header)
       console.log('🔵 Removing property from wishlist:', this.propertyId);
-      this.userService.removeFromFavorites(this.userId, this.propertyId, token).subscribe({
+      this.userService.removeFromFavorites(this.userId, this.propertyId).subscribe({
         next: (response) => {
           console.log('✅ Successfully removed from favorites:', response);
           this.isFavorite = false;
@@ -486,14 +553,14 @@ export class DetailPropertyComponent implements OnInit {
         },
         error: (error) => {
           console.error('❌ Error removing from favorites:', error);
-          alert('Có lỗi xảy ra khi xóa khỏi danh sách yêu thích!');
+          this.modalService.showError('Có lỗi xảy ra khi xóa khỏi danh sách yêu thích!');
           this.isLoadingWishlist = false;
         }
       });
     } else {
-      // Add to favorites
+      // Add to favorites (interceptor handles Authorization header)
       console.log('🔵 Adding property to wishlist:', this.propertyId);
-      this.userService.addToFavorites(this.userId, this.propertyId, token).subscribe({
+      this.userService.addToFavorites(this.userId, this.propertyId).subscribe({
         next: (response) => {
           console.log('✅ Successfully added to favorites:', response);
           this.isFavorite = true;
@@ -501,7 +568,7 @@ export class DetailPropertyComponent implements OnInit {
         },
         error: (error) => {
           console.error('❌ Error adding to favorites:', error);
-          alert('Có lỗi xảy ra khi thêm vào danh sách yêu thích!');
+          this.modalService.showError('Có lỗi xảy ra khi thêm vào danh sách yêu thích!');
           this.isLoadingWishlist = false;
         }
       });
@@ -524,5 +591,23 @@ export class DetailPropertyComponent implements OnInit {
 
   formatPrice(price: number): string {
     return new Intl.NumberFormat('vi-VN').format(price);
+  }
+
+  // ================ IMAGE MODAL METHODS ================
+  openImageModal(index: number): void {
+    this.currentImageIndex = index;
+    this.isImageModalOpen = true;
+    // Prevent body scroll when modal is open
+    document.body.style.overflow = 'hidden';
+  }
+
+  closeImageModal(): void {
+    this.isImageModalOpen = false;
+    // Restore body scroll
+    document.body.style.overflow = 'auto';
+  }
+
+  selectImage(index: number): void {
+    this.currentImageIndex = index;
   }
 }

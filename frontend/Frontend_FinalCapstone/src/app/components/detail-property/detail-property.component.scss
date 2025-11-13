@@ -128,7 +128,7 @@
 .amenity-item,
 .facility-item {
   display: flex;
-  align-items: start;
+  align-items: flex-start;
   gap: 1rem;
   padding: 1rem;
   border: 1px solid #3d4f64;
@@ -252,7 +252,7 @@
     
     .review-header {
       display: flex;
-      align-items: start;
+      align-items: flex-start;
       gap: 1rem;
       margin-bottom: 0.5rem;
       
@@ -697,5 +697,556 @@
   
   .box_general.write_review .rating-score {
     font-size: 3rem;
+  }
+}
+
+// ================ PHOTO GALLERY PREVIEW ================
+.photo-gallery-preview {
+  h4 {
+    color: #ffffff;
+    font-weight: 600;
+    margin-bottom: 1.5rem;
+  }
+  
+  .photo-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    grid-template-rows: repeat(2, 150px);
+    gap: 12px;
+    border-radius: 12px;
+    overflow: hidden;
+    
+    .photo-item {
+      position: relative;
+      overflow: hidden;
+      cursor: pointer;
+      background: #2d3e50;
+      
+      img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transition: transform 0.3s ease;
+      }
+      
+      &:hover img {
+        transform: scale(1.05);
+      }
+      
+      // First image - large, spans 2 rows on the left
+      &.photo-large {
+        grid-row: 1 / 3;
+        grid-column: 1 / 2;
+      }
+      
+      // Second image - medium, top right
+      &.photo-medium:nth-of-type(2) {
+        grid-column: 2 / 3;
+        grid-row: 1 / 2;
+      }
+      
+      // Third image - medium, bottom right (with overlay)
+      &.photo-medium:nth-of-type(3) {
+        grid-column: 2 / 3;
+        grid-row: 2 / 3;
+      }
+    }
+    
+    .photo-show-all {
+      position: relative;
+      
+      .photo-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.7);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        cursor: pointer;
+        transition: background 0.3s ease;
+        
+        &:hover {
+          background: rgba(0, 0, 0, 0.8);
+        }
+        
+        i {
+          font-size: 2rem;
+          color: white;
+        }
+        
+        span {
+          color: white;
+          font-weight: 600;
+          font-size: 1.1rem;
+        }
+      }
+    }
+  }
+}
+
+// Responsive grid layout
+@media (max-width: 768px) {
+  .photo-gallery-preview .photo-grid {
+    grid-template-columns: 1fr;
+    grid-template-rows: repeat(3, 200px);
+    
+    .photo-item {
+      &.photo-large,
+      &.photo-medium {
+        grid-column: 1 / 2 !important;
+      }
+      
+      &.photo-large {
+        grid-row: 1 / 2 !important;
+      }
+      
+      &.photo-medium:nth-of-type(2) {
+        grid-row: 2 / 3 !important;
+      }
+      
+      &.photo-medium:nth-of-type(3) {
+        grid-row: 3 / 4 !important;
+      }
+    }
+  }
+}
+
+// ================ IMAGE MODAL ================
+.image-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: fadeIn 0.3s ease;
+  
+  .modal-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.95);
+  }
+  
+  .modal-content {
+    position: relative;
+    width: 90%;
+    max-width: 1200px;
+    height: 90vh;
+    display: flex;
+    flex-direction: column;
+    background: #1e2a3a;
+    border-radius: 12px;
+    overflow: hidden;
+    animation: slideUp 0.3s ease;
+  }
+  
+  .modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.5rem 2rem;
+    background: #2d3e50;
+    border-bottom: 1px solid #3d4f64;
+    
+    h3 {
+      color: white;
+      margin: 0;
+      font-size: 1.25rem;
+      font-weight: 600;
+    }
+    
+    .close-btn {
+      background: none;
+      border: none;
+      color: white;
+      font-size: 1.5rem;
+      cursor: pointer;
+      padding: 0.5rem;
+      width: 40px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      transition: all 0.3s;
+      
+      &:hover {
+        background: rgba(255, 255, 255, 0.1);
+      }
+    }
+  }
+  
+  .modal-body {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    padding: 2rem;
+    overflow: hidden;
+    
+    .main-image-container {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      max-height: 100%;
+      
+      .main-image {
+        max-width: 100%;
+        max-height: 100%;
+        object-fit: contain;
+        border-radius: 8px;
+      }
+    }
+    
+    .nav-btn {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      background: rgba(255, 255, 255, 0.9);
+      border: none;
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.3s;
+      z-index: 10;
+      
+      i {
+        font-size: 1.5rem;
+        color: #1e2a3a;
+      }
+      
+      &:hover:not(:disabled) {
+        background: white;
+        transform: translateY(-50%) scale(1.1);
+      }
+      
+      &:disabled {
+        opacity: 0.3;
+        cursor: not-allowed;
+      }
+      
+      &.prev-btn {
+        left: 1rem;
+      }
+      
+      &.next-btn {
+        right: 1rem;
+      }
+    }
+  }
+  
+  .modal-footer {
+    padding: 1.5rem 2rem;
+    background: #2d3e50;
+    border-top: 1px solid #3d4f64;
+    overflow-x: auto;
+    
+    .thumbnails-container {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      
+      .thumbnail-wrapper {
+        flex-shrink: 0;
+        width: 80px;
+        height: 60px;
+        border-radius: 6px;
+        overflow: hidden;
+        cursor: pointer;
+        border: 2px solid transparent;
+        transition: all 0.3s;
+        
+        &:hover {
+          border-color: #60a5fa;
+          transform: scale(1.05);
+        }
+        
+        &.active {
+          border-color: #60a5fa;
+          box-shadow: 0 0 0 2px rgba(96, 165, 250, 0.3);
+        }
+        
+        .thumbnail {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+        }
+      }
+    }
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(50px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+// ================ DATE PICKER STYLES ================
+.datepicker-dropdown {
+  position: relative;
+  
+  ::ng-deep {
+    .dropdown-menu {
+      background-color: #2d3e50;
+      border: 1px solid #3d4f64;
+      border-radius: 8px;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+      padding: 1rem;
+      margin-top: 0.5rem;
+      max-width: 100%;
+    }
+    
+    ngb-datepicker {
+      background-color: #2d3e50;
+      border: none;
+      
+      .ngb-dp-header {
+        background-color: #1e2a3a;
+        border-bottom: 1px solid #3d4f64;
+        padding: 0.5rem;
+        
+        .ngb-dp-navigation-select {
+          select {
+            background-color: #2d3e50;
+            color: #ffffff;
+            border: 1px solid #3d4f64;
+            border-radius: 4px;
+            padding: 0.25rem 0.5rem;
+            
+            &:focus {
+              outline: none;
+              border-color: #60a5fa;
+            }
+          }
+        }
+        
+        .ngb-dp-arrow {
+          button {
+            background-color: transparent;
+            border: none;
+            color: #60a5fa;
+            
+            &:hover {
+              background-color: rgba(96, 165, 250, 0.1);
+            }
+            
+            &:disabled {
+              color: #4a5568;
+            }
+          }
+        }
+      }
+      
+      .ngb-dp-months {
+        background-color: #2d3e50;
+      }
+      
+      .ngb-dp-month {
+        background-color: #2d3e50;
+      }
+      
+      .ngb-dp-week {
+        border-bottom: 1px solid #3d4f64;
+      }
+      
+      .ngb-dp-weekday {
+        color: #a0aec0;
+        font-weight: 600;
+        font-style: normal;
+        font-size: 0.875rem;
+      }
+      
+      .ngb-dp-day {
+        .custom-day {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          width: 2rem;
+          height: 2rem;
+          border-radius: 4px;
+          color: #e2e8f0;
+          transition: all 0.2s;
+          
+          &:hover {
+            background-color: rgba(96, 165, 250, 0.2);
+            color: #ffffff;
+            cursor: pointer;
+          }
+          
+          &.focused {
+            background-color: rgba(96, 165, 250, 0.3);
+            color: #ffffff;
+          }
+          
+          &.range {
+            background-color: #60a5fa;
+            color: #ffffff;
+            font-weight: 600;
+          }
+          
+          &.faded {
+            background-color: rgba(96, 165, 250, 0.15);
+            color: #ffffff;
+          }
+        }
+        
+        &.disabled {
+          .custom-day {
+            color: #4a5568;
+            cursor: not-allowed;
+            
+            &:hover {
+              background-color: transparent;
+            }
+          }
+        }
+        
+        &.hidden {
+          .custom-day {
+            visibility: hidden;
+          }
+        }
+      }
+    }
+  }
+}
+
+// Date input với icon bên trong
+.date-input-wrapper {
+  position: relative;
+  width: 100%;
+  
+  .date-input {
+    width: 100%;
+    padding-right: 45px; // Tạo không gian cho icon bên phải
+    cursor: pointer;
+    background-color: white;
+    border: 1px solid #3d4f64;
+    color: #e5e7eb;
+    
+    &:focus {
+      border-color: #60a5fa;
+      outline: none;
+      box-shadow: 0 0 0 0.2rem rgba(96, 165, 250, 0.25);
+    }
+    
+    &::placeholder {
+      color: #6b7280;
+    }
+  }
+  
+  .calendar-icon {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 1.2rem;
+    color: #60a5fa;
+    cursor: pointer;
+    pointer-events: auto; // Cho phép click vào icon
+    z-index: 10;
+    padding: 5px; // Tăng vùng click
+    transition: color 0.2s ease;
+    
+    &:hover {
+      color: #3b82f6; // Màu xanh đậm hơn khi hover
+    }
+  }
+}
+
+// Responsive datepicker
+@media (max-width: 768px) {
+  .datepicker-dropdown {
+    ::ng-deep {
+      .dropdown-menu {
+        width: 100% !important;
+        max-width: calc(100vw - 2rem);
+      }
+      
+      ngb-datepicker {
+        [displayMonths] {
+          display: block !important;
+        }
+        
+        .ngb-dp-month {
+          width: 100% !important;
+        }
+      }
+    }
+  }
+}
+
+// Responsive modal
+@media (max-width: 768px) {
+  .image-modal {
+    .modal-content {
+      width: 100%;
+      height: 100vh;
+      border-radius: 0;
+    }
+    
+    .modal-body {
+      padding: 1rem;
+      
+      .nav-btn {
+        width: 40px;
+        height: 40px;
+        
+        i {
+          font-size: 1.25rem;
+        }
+        
+        &.prev-btn {
+          left: 0.5rem;
+        }
+        
+        &.next-btn {
+          right: 0.5rem;
+        }
+      }
+    }
+    
+    .modal-footer {
+      .thumbnails-container {
+        justify-content: flex-start;
+        
+        .thumbnail-wrapper {
+          width: 60px;
+          height: 45px;
+        }
+      }
+    }
   }
 }

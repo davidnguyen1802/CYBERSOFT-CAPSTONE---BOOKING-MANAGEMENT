@@ -12,6 +12,7 @@ import { CartService } from '../../services/cart.service';
 import { HttpClient } from '@angular/common/http';
 import { getBaseUrl } from '../../utils/url.util';
 import { AuthStateService } from '../../services/auth-state.service';
+import { SimpleModalService } from '../../services/simple-modal.service';
 @Component({
   selector: 'app-login',
   templateUrl: './login.component.html',
@@ -40,10 +41,8 @@ export class LoginComponent implements OnInit{
   usernameOrEmail: string = '';
   password: string = '';
   showPassword: boolean = false;
+  rememberMe: boolean = false; // Default is false - only save token if user checks this
 
-  // roles: Role[] = []; // Not needed - roles determined by backend
-  rememberMe: boolean = true;
-  // selectedRole: Role | undefined; // Not needed - roles determined by backend
   userResponse?: UserResponse
 
   onUsernameOrEmailChange() {
@@ -59,6 +58,7 @@ export class LoginComponent implements OnInit{
     private cartService: CartService,
     private http: HttpClient,
     private authStateService: AuthStateService,
+    private modalService: SimpleModalService
   ) { }
 
   ngOnInit() {
@@ -77,12 +77,17 @@ export class LoginComponent implements OnInit{
     //alert(message);
     // debugger
 
+    // CRITICAL: Include rememberMe in request body (backend needs this!)
     const loginDTO: LoginDTO = {
       usernameOrEmail: this.usernameOrEmail,
-      password: this.password
+      password: this.password,
+      rememberMe: this.rememberMe // ← NEW: Send to backend
     };
     
-    console.log('🔐 Sending login request...', { usernameOrEmail: this.usernameOrEmail });
+    console.log('🔐 Sending login request...', { 
+      usernameOrEmail: this.usernameOrEmail,
+      rememberMe: this.rememberMe 
+    });
     
     this.userService.login(loginDTO).subscribe({
       next: (response: LoginResponse) => {
@@ -91,33 +96,89 @@ export class LoginComponent implements OnInit{
         // Check if response and response.data exist
         if (!response || !response.data) {
           console.error('❌ Invalid response structure:', response);
-          alert('Invalid response from server');
+          this.modalService.showError('Phản hồi không hợp lệ từ server');
           return;
         }
         
-        const authData = response.data;
-        const token = authData.token;
-        console.log('Token received:', token);
-        console.log('User data:', authData);
+        // CRITICAL: Extract token from response
+        // Backend returns: { message, status, data: "<JWT_STRING>" }
+        // NOT: { message, status, data: { token: "..." } }
+        let token: string;
         
-        if (this.rememberMe) {          
-          // Save access token to localStorage
-          // Refresh token is automatically stored in HttpOnly cookie by backend
-          this.tokenService.setToken(token);
-          
-          // Notify that user has logged in
-          console.log('🔐 Notifying login state change');
-          this.authStateService.notifyLogin();
+        if (typeof response.data === 'string') {
+          // Case 1: data IS the JWT string directly
+          token = response.data;
+          console.log('✅ Token extracted from response.data (string)');
+        } else if (response.data && typeof response.data === 'object' && 'token' in response.data) {
+          // Case 2: data is object with token property (backward compatibility)
+          token = (response.data as any).token;
+          console.log('✅ Token extracted from response.data.token (object)');
+        } else {
+          console.error('❌ Cannot find token in response:', response);
+          this.modalService.showError('Không tìm thấy token trong phản hồi');
+          return;
+        }
+        
+        // Validate token exists and is truthy
+        if (!token || typeof token !== 'string' || token.trim() === '') {
+          console.error('❌ Token is null/empty/invalid:', { 
+            token, 
+            type: typeof token,
+            truthy: !!token,
+            length: token?.length 
+          });
+          this.modalService.showError('Token không hợp lệ');
+          return;
+        }
+        
+        console.log('🔐 Token validation:');
+        console.log('   Truthy:', !!token);
+        console.log('   Type:', typeof token);
+        console.log('   Length:', token.length);
+        console.log('   Preview:', token.substring(0, 50) + '...');
+        
+        // CRITICAL: Save token using TokenService (handles storage location + JWT validation)
+        // rememberMe determines storage: localStorage (true) vs sessionStorage (false)
+        console.log(`💾 Saving token with rememberMe=${this.rememberMe}...`);
+        
+        // Save remember preference first
+        if (this.rememberMe) {
+          localStorage.setItem('remember', '1');
+        } else {
+          localStorage.removeItem('remember');
+        }
+        
+        // Then save token (TokenService will validate JWT format and throw if invalid)
+        try {
+          this.tokenService.setToken(token, this.rememberMe);
+          console.log('✅ Token saved to storage successfully');
+        } catch (error) {
+          console.error('❌ Failed to save token:', error);
+          this.modalService.showError('Lỗi lưu token: ' + (error as Error).message);
+          return;
+        }
+        
+        // NOTE: Device ID is auto-generated by DeviceService.getDeviceId() when needed
+        // DeviceIdInterceptor will trigger auto-generation on first auth request
+        // No need to manually generate here
+        
+        // CRITICAL: Notify auth ready AFTER token is saved
+        // Use setTimeout(0) to ensure storage operations complete
+        console.log('🔐 Notifying auth ready state (next tick)...');
+        setTimeout(() => {
+          this.authStateService.notifyLogin(); // This sets authReady = true
           
           // Refresh cart (cart service will use token to identify user)
           console.log('🛒 Refreshing cart for logged-in user');
           this.cartService.refreshCart();
           
-          // Navigate based on role
-          const roles = authData.roles || [];
-          const isAdmin = roles.includes('ROLE_ADMIN');
+          // Navigate based on role from TOKEN PAYLOAD (not response data)
+          // Decode token to get role
+          const decodedToken = this.tokenService.decodeToken(token);
+          const role = decodedToken?.role || '';
+          const isAdmin = role === 'ROLE_ADMIN';
           
-          console.log('👤 User roles:', roles);
+          console.log('👤 User role (from token):', role);
           console.log('👤 Is Admin:', isAdmin);
           
           if (isAdmin) {
@@ -127,9 +188,7 @@ export class LoginComponent implements OnInit{
             console.log('➡️ Navigating to /');
             this.router.navigate(['/']);
           }
-        } else {
-          console.warn('⚠️ Remember me is not checked, tokens not saved');
-        }
+        }, 100); // 100ms delay to ensure auth ready propagates
       },
       complete: () => {
         console.log('✅ Login process complete');
@@ -143,8 +202,8 @@ export class LoginComponent implements OnInit{
           fullError: error?.error
         });
         
-        const errorMessage = error?.error?.message || 'Login failed. Please check your credentials.';
-        alert(errorMessage);
+        const errorMessage = error?.error?.message || 'Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin đăng nhập.';
+        this.modalService.showError(errorMessage);
       }
     });
   }
@@ -171,7 +230,7 @@ export class LoginComponent implements OnInit{
       },
       error: (error) => {
         console.error('Error getting OAuth URL:', error);
-        alert('Failed to initiate Google login. Please try again.');
+        this.modalService.showError('Không thể khởi tạo đăng nhập Google. Vui lòng thử lại.');
       }
     });
   }
@@ -195,7 +254,7 @@ export class LoginComponent implements OnInit{
       },
       error: (error) => {
         console.error('Error getting OAuth URL:', error);
-        alert('Failed to initiate Facebook login. Please try again.');
+        this.modalService.showError('Không thể khởi tạo đăng nhập Facebook. Vui lòng thử lại.');
       }
     });
   }

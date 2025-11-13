@@ -1,0 +1,103 @@
+<div class="payment-container">
+  <div class="payment-card">
+    
+    <!-- Polling/Loading State -->
+    <div *ngIf="isPolling" class="polling-state">
+      <div class="spinner-large"></div>
+      <h2>Verifying Payment...</h2>
+      <p class="message">
+        Please wait while we confirm your payment with the bank.
+        <br>
+        <small>Attempt {{ pollingAttempts }} of {{ maxPollingAttempts }}</small>
+      </p>
+    </div>
+
+    <!-- Success State -->
+    <div *ngIf="showSuccess && !isPolling" class="success-state">
+      <div class="success-icon">
+        <svg viewBox="0 0 52 52">
+          <polyline points="14 27 22 35 38 19"/>
+        </svg>
+      </div>
+
+      <h1>Payment Successful!</h1>
+      <p class="message">
+        Thank you for your payment. Your booking has been confirmed and you will receive a confirmation email shortly.
+      </p>
+
+      <div class="info-box">
+        <div class="info-row">
+          <span class="info-label">Booking ID:</span>
+          <span class="info-value">#{{ orderCode }}</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Status:</span>
+          <span class="info-value status-confirmed">Paid</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Payment Date:</span>
+          <span class="info-value">{{ paymentDate }}</span>
+        </div>
+        <div class="info-row" *ngIf="transactionId">
+          <span class="info-label">Transaction ID:</span>
+          <span class="info-value">{{ transactionId }}</span>
+        </div>
+        <div class="info-row" *ngIf="amount > 0">
+          <span class="info-label">Amount Paid:</span>
+          <span class="info-value">{{ amount | number:'1.0-0' }} VND</span>
+        </div>
+      </div>
+
+      <!-- Promotion Savings Display -->
+      <div class="savings-box" *ngIf="promotionApplied && discountAmount > 0">
+        <div class="savings-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" 
+                  stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <div class="savings-content">
+          <div class="savings-title">🎉 Promotion Applied!</div>
+          <div class="savings-details">
+            <div class="savings-row">
+              <span>Original Price:</span>
+              <span>{{ originalAmount | number:'1.0-0' }} VND</span>
+            </div>
+            <div class="savings-row discount">
+              <span>Discount:</span>
+              <span>-{{ discountAmount | number:'1.0-0' }} VND</span>
+            </div>
+            <div class="savings-divider"></div>
+            <div class="savings-row final">
+              <span>Final Price:</span>
+              <span>{{ amount | number:'1.0-0' }} VND</span>
+            </div>
+          </div>
+          <div class="savings-badge">
+            💰 You saved {{ discountAmount | number:'1.0-0' }} VND!
+          </div>
+        </div>
+      </div>
+
+      <div class="buttons">
+        <button (click)="createNewBooking()" class="btn-secondary">New Booking</button>
+        <button (click)="goToBookings()" class="btn-primary">View My Bookings</button>
+      </div>
+    </div>
+
+    <!-- Error State -->
+    <div *ngIf="showError && !isPolling" class="error-state">
+      <div class="error-icon">❌</div>
+      <h1>Payment Issue</h1>
+      <p class="message error-text">{{ errorMessage }}</p>
+
+      <div class="buttons">
+        <button (click)="goToBookings()" class="btn-primary">View My Bookings</button>
+      </div>
+    </div>
+
+    <div class="footer">
+      <p>Need help? Contact our support team</p>
+    </div>
+  </div>
+</div>

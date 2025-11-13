@@ -1,0 +1,106 @@
+<div class="add-facilities-container">
+  <!-- Header -->
+  <div class="header">
+    <button class="btn-back" (click)="goBack()">
+      <i class="bi bi-arrow-left"></i>
+      Quay lại
+    </button>
+    <h2>Thêm cơ sở vật chất</h2>
+    <p class="subtitle">Chọn các cơ sở vật chất mà property của bạn có</p>
+  </div>
+
+  <!-- Loading State -->
+  <div *ngIf="isLoading" class="loading-container">
+    <div class="spinner-border text-primary" role="status">
+      <span class="visually-hidden">Đang tải...</span>
+    </div>
+    <p>Đang tải danh sách cơ sở vật chất...</p>
+  </div>
+
+  <!-- Facilities Grid -->
+  <div *ngIf="!isLoading && facilities.length > 0" class="facilities-content">
+    <div class="facilities-grid">
+      <div 
+        *ngFor="let facility of facilities" 
+        class="facility-card"
+        [class.selected]="isFacilitySelected(facility.id)"
+        (click)="toggleFacility(facility.id)"
+      >
+        <div class="facility-icon">
+          <img 
+            [src]="getFacilityIconUrl(facility.iconUrl)" 
+            [alt]="facility.facilityName"
+            onerror="this.src='assets/default-facility-icon.png'"
+          >
+        </div>
+        <div class="facility-info">
+          <h4>{{ facility.facilityName }}</h4>
+          <p *ngIf="facility.description">{{ facility.description }}</p>
+        </div>
+        <div class="check-icon" *ngIf="isFacilitySelected(facility.id)">
+          <i class="bi bi-check-circle-fill"></i>
+        </div>
+      </div>
+    </div>
+
+    <!-- Selected Count -->
+    <div class="selected-count" *ngIf="selectedFacilityIds.size > 0">
+      <i class="bi bi-check-circle"></i>
+      Đã chọn {{ selectedFacilityIds.size }} cơ sở vật chất
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="action-buttons">
+      <button 
+        class="btn btn-outline-secondary btn-skip" 
+        (click)="skip()"
+        [disabled]="isSubmitting"
+      >
+        Bỏ qua
+      </button>
+      <button 
+        class="btn btn-primary btn-submit" 
+        (click)="submit()"
+        [disabled]="isSubmitting || selectedFacilityIds.size === 0"
+      >
+        <span *ngIf="!isSubmitting">Tiếp tục</span>
+        <span *ngIf="isSubmitting">
+          <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+          Đang xử lý...
+        </span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Empty State -->
+  <div *ngIf="!isLoading && facilities.length === 0" class="empty-state">
+    <i class="bi bi-inbox"></i>
+    <h3>Không có cơ sở vật chất nào</h3>
+    <p>Hiện tại chưa có cơ sở vật chất nào trong hệ thống.</p>
+    <button class="btn btn-primary" (click)="skip()">
+      Bỏ qua bước này
+    </button>
+  </div>
+</div>
+
+<!-- Modal -->
+<div class="modal fade" [class.show]="showModal" [style.display]="showModal ? 'block' : 'none'" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header" [class.bg-success]="modalType === 'success'" [class.bg-danger]="modalType === 'error'">
+        <h5 class="modal-title text-white">
+          <i class="bi" [class.bi-check-circle]="modalType === 'success'" [class.bi-x-circle]="modalType === 'error'"></i>
+          {{ modalTitle }}
+        </h5>
+        <button type="button" class="btn-close btn-close-white" (click)="closeModal()"></button>
+      </div>
+      <div class="modal-body">
+        <p>{{ modalMessage }}</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-primary" (click)="closeModal()">Đóng</button>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="modal-backdrop fade" [class.show]="showModal" *ngIf="showModal"></div>

@@ -1,0 +1,46 @@
+<!-- Simple Modal Overlay -->
+<div class="modal-overlay" *ngIf="isVisible" (click)="onBackdropClick()">
+  <div class="modal-container" (click)="$event.stopPropagation()">
+    <!-- Modal Header -->
+    <div class="modal-header" [class.danger]="config?.isDanger">
+      <h3 class="modal-title">{{ config?.title }}</h3>
+    </div>
+    
+    <!-- Modal Body -->
+    <div class="modal-body">
+      <p class="modal-message">{{ config?.message }}</p>
+      
+      <!-- Optional Input Field -->
+      <div class="modal-input-group" *ngIf="config?.showInput">
+        <label *ngIf="config?.inputLabel" class="input-label">
+          {{ config?.inputLabel }}
+        </label>
+        <textarea 
+          [(ngModel)]="inputValue"
+          class="form-control modal-textarea"
+          [placeholder]="config?.inputPlaceholder || ''"
+          rows="3"
+          maxlength="500">
+        </textarea>
+        <small class="text-muted">{{ inputValue.length }}/500 ký tự</small>
+      </div>
+    </div>
+    
+    <!-- Modal Footer -->
+    <div class="modal-footer">
+      <button 
+        *ngIf="config?.showCancelButton" 
+        class="btn btn-cancel" 
+        (click)="onCancelClick()">
+        {{ config?.cancelButton || 'Hủy' }}
+      </button>
+      <button 
+        class="btn"
+        [class.btn-primary]="!config?.isDanger"
+        [class.btn-danger]="config?.isDanger"
+        (click)="onPrimaryClick()">
+        {{ config?.primaryButton || 'OK' }}
+      </button>
+    </div>
+  </div>
+</div>

@@ -27,6 +27,7 @@ export class AuthCallbackComponent implements OnInit {
   ) { }
 
   ngOnInit(): void {
+    console.log('🔐 OAuth Callback Component initialized');
     // Get the query parameters from the URL
     this.route.queryParams.subscribe(params => {
       const token = params['token'];
@@ -36,12 +37,21 @@ export class AuthCallbackComponent implements OnInit {
       const roles = params['roles'];
       const error = params['error'];
 
-      console.log('OAuth callback params:', { token, refreshToken, id, username, roles, error });
+      console.log('🔐 OAuth callback params:', { 
+        hasToken: !!token, 
+        hasRefreshToken: !!refreshToken, 
+        id, 
+        username, 
+        roles, 
+        error 
+      });
 
       if (error) {
+        console.error('❌ OAuth authentication error:', error);
         this.errorMessage = `Authentication failed: ${error}`;
         this.loading = false;
         setTimeout(() => {
+          console.log('➡️ Redirecting to login page after error');
           this.router.navigate(['/login']);
         }, 3000);
         return;
@@ -51,9 +61,11 @@ export class AuthCallbackComponent implements OnInit {
         // Process the tokens and user data directly from URL parameters
         this.processOAuthTokens(token, refreshToken, id, username, roles);
       } else {
+        console.error('❌ Invalid callback parameters - missing token or id');
         this.errorMessage = 'Invalid callback parameters';
         this.loading = false;
         setTimeout(() => {
+          console.log('➡️ Redirecting to login page after invalid params');
           this.router.navigate(['/login']);
         }, 3000);
       }
@@ -61,25 +73,47 @@ export class AuthCallbackComponent implements OnInit {
   }
 
   private processOAuthTokens(token: string, refreshToken: string, id: string, username: string, roles: string): void {
-    console.log('Processing OAuth tokens...');
+    console.log('🔐 Processing OAuth tokens...');
+    console.log('👤 User info from OAuth:', { id, username, roles });
 
-    // Save access token to localStorage
-    // Refresh token is automatically stored in HttpOnly cookie by backend
-    this.tokenService.setToken(token);
+    // Validate token before saving
+    if (!token || token.trim() === '') {
+      console.error('❌ Invalid OAuth token received');
+      this.errorMessage = 'Invalid token received';
+      this.loading = false;
+      setTimeout(() => {
+        this.router.navigate(['/login']);
+      }, 3000);
+      return;
+    }
 
-    console.log('Token saved to localStorage');
+    try {
+      // Save access token to localStorage
+      // Refresh token is automatically stored in HttpOnly cookie by backend
+      this.tokenService.setToken(token);
+      console.log('✅ OAuth tokens saved to localStorage');
 
-    // Notify that user has logged in
-    this.authStateService.notifyLogin();
+      // Notify that user has logged in
+      console.log('🔐 Notifying login state change');
+      this.authStateService.notifyLogin();
 
-    // Refresh cart (cart service will use token to identify user)
-    this.cartService.refreshCart();
+      // Refresh cart (cart service will use token to identify user)
+      console.log('🛒 Refreshing cart for logged-in user');
+      this.cartService.refreshCart();
 
-    this.loading = false;
+      this.loading = false;
 
-    // Redirect to user-profile to fetch and display user data from API
-    console.log('Redirecting to /user-profile');
-    this.router.navigate(['/user-profile']);
+      // Redirect to user-profile to fetch and display user data from API
+      console.log('➡️ OAuth login successful, redirecting to /user-profile');
+      this.router.navigate(['/user-profile']);
+    } catch (error) {
+      console.error('❌ Error processing OAuth tokens:', error);
+      this.errorMessage = 'Failed to process authentication';
+      this.loading = false;
+      setTimeout(() => {
+        this.router.navigate(['/login']);
+      }, 3000);
+    }
   }
 
   private exchangeCodeForTokens(loginType: string, code: string): void {
@@ -95,8 +129,9 @@ export class AuthCallbackComponent implements OnInit {
         console.log('OAuth callback response:', response);
 
         if (response && response.data) {
-          const authData = response.data;
-          const token = authData.token;
+          // ⚠️ CRITICAL: Backend returns JWT string directly in response.data
+          // Format: { status: "OK", message: "...", data: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." }
+          const token = response.data;
 
           // Save access token to localStorage
           // Refresh token is automatically stored in HttpOnly cookie by backend

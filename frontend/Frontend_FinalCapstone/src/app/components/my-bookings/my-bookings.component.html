@@ -1,0 +1,91 @@
+﻿<app-header></app-header>
+
+<div class="my-bookings-container">
+  <div class="page-header">
+    <div class="header-icon">
+      <i class="fas fa-calendar-check"></i>
+    </div>
+    <div class="header-content">
+      <h1>Your Bookings</h1>
+      <p class="subtitle">Lịch Sử Đặt Phòng ({{ bookingCounts['ALL'] }})</p>
+    </div>
+  </div>
+
+  <div class="filter-tabs">
+    <button class="tab-btn" [class.active]="selectedFilter === 'ALL'" (click)="filterBookings('ALL')">
+      Tất cả ({{ bookingCounts['ALL'] }})
+    </button>
+    <button class="tab-btn" [class.active]="selectedFilter === 'PENDING'" (click)="filterBookings('PENDING')">
+      Chờ xác nhận ({{ bookingCounts['PENDING'] }})
+    </button>
+    <button class="tab-btn" [class.active]="selectedFilter === 'CONFIRMED'" (click)="filterBookings('CONFIRMED')">
+      Đã xác nhận ({{ bookingCounts['CONFIRMED'] }})
+    </button>
+    <button class="tab-btn" [class.active]="selectedFilter === 'PAID'" (click)="filterBookings('PAID')">
+      Đã thanh toán ({{ bookingCounts['PAID'] }})
+    </button>
+    <button class="tab-btn" [class.active]="selectedFilter === 'COMPLETED'" (click)="filterBookings('COMPLETED')">
+      Hoàn thành ({{ bookingCounts['COMPLETED'] }})
+    </button>
+    <button class="tab-btn" [class.active]="selectedFilter === 'CANCELLED'" (click)="filterBookings('CANCELLED')">
+      Đã hủy ({{ bookingCounts['CANCELLED'] }})
+    </button>
+    <button class="tab-btn" [class.active]="selectedFilter === 'REJECTED'" (click)="filterBookings('REJECTED')">
+      Bị từ chối ({{ bookingCounts['REJECTED'] }})
+    </button>
+  </div>
+
+  <div *ngIf="loading" class="loading-state">
+    <div class="spinner"></div>
+    <p>Đang tải...</p>
+  </div>
+
+  <div *ngIf="errorMessage && !loading" class="error-state">
+    <i class="fas fa-exclamation-circle"></i>
+    <p>{{ errorMessage }}</p>
+  </div>
+
+  <div *ngIf="!loading && filteredBookings.length === 0" class="empty-state">
+    <i class="fas fa-inbox"></i>
+    <p>Không có booking nào</p>
+  </div>
+
+  <div *ngIf="!loading && filteredBookings.length > 0" class="bookings-list">
+    <app-booking-card
+      *ngFor="let booking of filteredBookings"
+      [booking]="booking"
+      [onViewDetail]="viewBookingDetails.bind(this)"
+      [onCancel]="canCancel(booking) ? cancelBooking.bind(this) : undefined"
+      [onDelete]="canDelete(booking) ? deleteBooking.bind(this) : undefined"
+      [onPay]="canPay(booking) ? handlePayment.bind(this) : undefined"
+      [getCountdown]="getCountdown.bind(this)">
+    </app-booking-card>
+    
+    <!-- Pagination -->
+    <div class="pagination-container" *ngIf="totalPages > 1">
+      <button 
+        class="pagination-btn" 
+        [disabled]="currentPage === 0"
+        (click)="onPageChange(currentPage - 1)">
+        <i class="fas fa-chevron-left"></i>
+        Trước
+      </button>
+      
+      <div class="pagination-info">
+        Trang {{ currentPage + 1 }} / {{ totalPages }}
+        <span class="total-elements">({{ totalElements }} bookings)</span>
+      </div>
+      
+      <button 
+        class="pagination-btn" 
+        [disabled]="currentPage >= totalPages - 1"
+        (click)="onPageChange(currentPage + 1)">
+        Sau
+        <i class="fas fa-chevron-right"></i>
+      </button>
+    </div>
+  </div>
+</div>
+
+<app-footer></app-footer>
+

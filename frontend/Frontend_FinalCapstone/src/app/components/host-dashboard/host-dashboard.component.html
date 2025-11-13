@@ -1,0 +1,214 @@
+<!-- Navigation Header -->
+<app-header></app-header>
+
+<!-- Modern Header with Dark Gradient -->
+<div class="modern-header">
+  <div class="header-content">
+    <div class="header-left">
+      <div class="header-icon">
+        <span class="icon">🏠</span>
+      </div>
+      <div class="header-text">
+        <h1>Host Dashboard - Booking Management</h1>
+        <p>Manage bookings for your properties</p>
+      </div>
+    </div>
+    
+    <button 
+      class="view-toggle-btn" 
+      (click)="toggleViewMode()"
+      [class.active-calendar]="viewMode === 'calendar'">
+      <span *ngIf="viewMode === 'table'">📅 Calendar View</span>
+      <span *ngIf="viewMode === 'calendar'">📋 Table View</span>
+    </button>
+  </div>
+</div>
+
+<div class="host-dashboard-container">
+  <!-- Statistics Cards -->
+  <app-statistics-cards 
+    [statistics]="statistics" 
+    [loading]="loadingStats">
+  </app-statistics-cards>
+
+  <!-- Modern Filters Section -->
+  <div class="filters-section">
+    <div class="filters-header">
+      <span class="filter-label">Filter by Status:</span>
+    </div>
+    <div class="status-filters">
+      <button 
+        class="filter-chip"
+        [class.active]="isStatusSelected('ALL')"
+        (click)="onStatusFilterChange('ALL')">
+        All Booking Request
+      </button>
+      <button 
+        *ngFor="let status of statusOptions"
+        class="filter-chip"
+        [class.active]="isStatusSelected(status.value)"
+        [attr.data-status]="status.value.toLowerCase()"
+        (click)="onStatusFilterChange(status.value)">
+        {{ status.label }}
+      </button>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  <div class="loading" *ngIf="loading">
+    <div class="spinner"></div>
+    <p>Loading bookings...</p>
+  </div>
+
+  <!-- Calendar View -->
+  <div class="calendar-section" *ngIf="!loading && viewMode === 'calendar'">
+    <app-calendar 
+      [bookings]="bookings"
+      [selectedStatuses]="selectedStatuses"
+      [statusOptions]="statusOptions"
+      [totalElements]="totalElements"
+      (onDateClick)="handleCalendarDateClick($event)"
+      (onStatusChange)="onStatusFilterChange($event)">
+    </app-calendar>
+  </div>
+
+  <!-- Bookings Table -->
+  <div class="bookings-section" *ngIf="!loading && viewMode === 'table'">
+    <div *ngIf="bookings.length > 0" class="modern-table-container">
+      <table class="modern-table">
+        <thead>
+          <tr>
+            <th>Booking ID</th>
+            <th>Guest Name</th>
+            <th>Property</th>
+            <th>Created</th>
+            <th>Check-in</th>
+            <th>Check-out</th>
+            <th>Amount</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let booking of bookings; let i = index">
+            <td>
+              <span class="booking-id">#{{ booking.id }}</span>
+            </td>
+            <td>
+              <div class="guest-info">
+                <div class="guest-avatar">
+                  {{ (booking.userName || 'User').charAt(0).toUpperCase() }}
+                </div>
+                <span class="guest-name">{{ booking.userName || 'User #' + booking.userId }}</span>
+              </div>
+            </td>
+            <td class="property-name">{{ booking.propertyName || 'Property #' + booking.propertyId }}</td>
+            <td>
+              <div class="date-info">
+                <span class="calendar-icon">📅</span>
+                <span>{{ booking.createdAt ? formatDate(booking.createdAt) : 'N/A' }}</span>
+              </div>
+            </td>
+            <td>
+              <div class="date-info">
+                <span class="calendar-icon">📅</span>
+                <span>{{ formatDate(booking.checkIn) }}</span>
+              </div>
+            </td>
+            <td>
+              <div class="date-info">
+                <span class="calendar-icon">📅</span>
+                <span>{{ formatDate(booking.checkOut) }}</span>
+              </div>
+            </td>
+            <td>
+              <div class="amount-info">
+                <span class="wallet-icon">💰</span>
+                <span class="amount">{{ formatCurrency(booking.totalPrice) }}</span>
+              </div>
+            </td>
+            <td>
+              <span class="status-badge" [attr.data-status]="booking.status?.toLowerCase()">
+                {{ booking.status }}
+              </span>
+            </td>
+            <td class="actions-cell">
+              <ng-container *ngIf="isPendingStatus(booking)">
+                <button class="action-btn approve-btn" (click)="onApprove(booking)">
+                  ✅ Approve
+                </button>
+                <button class="action-btn reject-btn" (click)="onReject(booking)">
+                  ❌ Reject
+                </button>
+              </ng-container>
+              <ng-container *ngIf="!isPendingStatus(booking)">
+                <button class="action-btn disabled-btn" disabled>
+                  No Actions
+                </button>
+              </ng-container>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Modern Empty State -->
+    <div *ngIf="bookings.length === 0" class="modern-empty-state">
+      <div class="empty-icon-wrapper">
+        <span class="empty-icon">📭</span>
+      </div>
+      <h3>No bookings found</h3>
+      <p>No bookings match the selected filters.</p>
+    </div>
+  </div>
+
+  <!-- Pagination -->
+  <div class="pagination" *ngIf="totalPages > 1 && !loading">
+    <button 
+      class="btn-pagination"
+      [disabled]="currentPage === 0" 
+      (click)="onPageChange(currentPage - 1)">
+      Previous
+    </button>
+    <span class="page-info">
+      Page {{ currentPage + 1 }} of {{ totalPages }} ({{ totalElements }} total)
+    </span>
+    <button 
+      class="btn-pagination"
+      [disabled]="currentPage >= totalPages - 1" 
+      (click)="onPageChange(currentPage + 1)">
+      Next
+    </button>
+  </div>
+</div>
+
+<!-- Modals -->
+<app-confirm-modal
+  [isVisible]="showConfirmModal"
+  [title]="confirmModalData.title"
+  [message]="confirmModalData.message"
+  [warning]="confirmModalData.warning"
+  [conflicts]="confirmModalData.conflicts"
+  [confirmText]="confirmModalData.confirmText"
+  [cancelText]="confirmModalData.cancelText"
+  [confirmButtonClass]="confirmModalData.confirmButtonClass"
+  (onConfirm)="confirmModalData.onConfirm()"
+  (onCancel)="handleConfirmModalCancel()">
+</app-confirm-modal>
+
+<app-input-modal
+  [isVisible]="showInputModal"
+  [title]="inputModalData.title"
+  [message]="inputModalData.message"
+  [inputLabel]="inputModalData.inputLabel"
+  [inputPlaceholder]="inputModalData.inputPlaceholder"
+  [inputType]="'textarea'"
+  [maxLength]="500"
+  [confirmText]="inputModalData.confirmText"
+  [cancelText]="inputModalData.cancelText"
+  (onConfirm)="inputModalData.onConfirm($event)"
+  (onCancel)="handleInputModalCancel()">
+</app-input-modal>
+
+<!-- Footer -->
+<app-footer></app-footer>

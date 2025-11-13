@@ -1,0 +1,364 @@
+<app-header></app-header>
+
+<div *ngIf="loading" class="loading-container">
+  <div class="spinner-border text-primary" role="status">
+    <span class="visually-hidden">Loading...</span>
+  </div>
+</div>
+
+<div *ngIf="errorMsg" class="alert alert-danger m-4">
+  {{ errorMsg }}
+</div>
+
+<main *ngIf="property && !loading">
+  <!-- Hero Section with Images -->
+  <section class="hero_in hotels_detail" [style.background-image]="'url(' + getCurrentImage() + ')'">
+    <div class="wrapper">
+      <div class="container">
+        <h1 class="fadeInUp">
+          <span>{{ property.name }}</span>
+          <span class="badge bg-warning ms-3">Chế độ chỉnh sửa</span>
+        </h1>
+      </div>
+    </div>
+  </section>
+
+  <!-- Secondary Navigation -->
+  <div class="bg_color_1">
+    <nav class="secondary_nav sticky_horizontal">
+      <div class="container">
+        <ul class="clearfix">
+          <li><a (click)="goBack()" style="cursor: pointer;">
+            <i class="fas fa-arrow-left me-2"></i>Quay lại
+          </a></li>
+        </ul>
+      </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="container margin_60_35">
+      <div class="row">
+        <!-- Main Column - Property Details (Full Width) -->
+        <div class="col-12">
+          
+          <!-- Basic Information Section -->
+          <section id="basic-info" class="mb-4">
+            <div class="card">
+              <div class="card-header d-flex justify-content-between align-items-center">
+                <h3 class="mb-0"><i class="fas fa-info-circle me-2"></i>Thông tin cơ bản</h3>
+                <button 
+                  class="btn btn-sm btn-outline-primary"
+                  *ngIf="!editMode.basicInfo"
+                  (click)="toggleEditMode('basicInfo')">
+                  <i class="fas fa-edit me-1"></i> Chỉnh sửa
+                </button>
+                <div *ngIf="editMode.basicInfo" class="d-flex gap-2">
+                  <button 
+                    class="btn btn-sm btn-success"
+                    (click)="saveSection('basicInfo')">
+                    <i class="fas fa-save me-1"></i> Lưu
+                  </button>
+                  <button 
+                    class="btn btn-sm btn-secondary"
+                    (click)="cancelEdit('basicInfo')">
+                    <i class="fas fa-times me-1"></i> Hủy
+                  </button>
+                </div>
+              </div>
+              <div class="card-body">
+                <h2>Về căn hộ của {{ property.hostName }}</h2>
+                <p class="lead">{{ property.locationName }}, {{ property.cityName }}</p>
+                <p>{{ property.description }}</p>
+                
+                <div class="row mt-4">
+                  <div class="col-md-3 col-6">
+                    <div class="property-feature">
+                      <i class="bi bi-door-open"></i>
+                      <span>{{ property.numberOfBedrooms }} Phòng ngủ</span>
+                    </div>
+                  </div>
+                  <div class="col-md-3 col-6">
+                    <div class="property-feature">
+                      <i class="bi bi-droplet"></i>
+                      <span>{{ property.numberOfBathrooms }} Phòng tắm</span>
+                    </div>
+                  </div>
+                  <div class="col-md-3 col-6">
+                    <div class="property-feature">
+                      <i class="bi bi-people"></i>
+                      <span>{{ property.maxAdults }} Người lớn</span>
+                    </div>
+                  </div>
+                  <div class="col-md-3 col-6">
+                    <div class="property-feature">
+                      <i class="bi bi-star-fill"></i>
+                      <span>{{ property.rating }}/5 Rating</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="row mt-4">
+                  <div class="col-md-6">
+                    <div class="info-item">
+                      <strong><i class="fas fa-dollar-sign me-2"></i>Giá/đêm:</strong>
+                      <span class="text-primary fs-5 ms-2">{{ formatPrice(property.pricePerNight) }}đ</span>
+                    </div>
+                  </div>
+                  <div class="col-md-6">
+                    <div class="info-item">
+                      <strong><i class="fas fa-home me-2"></i>Loại:</strong>
+                      <span class="badge bg-info ms-2">{{ getPropertyTypeLabel() }}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <hr>
+          
+          <!-- Images Section -->
+          <section id="images" class="mb-4">
+            <div class="card">
+              <div class="card-header d-flex justify-content-between align-items-center">
+                <h3 class="mb-0"><i class="fas fa-images me-2"></i>Hình ảnh</h3>
+                <button 
+                  class="btn btn-sm btn-outline-primary"
+                  *ngIf="!editMode.images"
+                  (click)="toggleEditMode('images')">
+                  <i class="fas fa-edit me-1"></i> Chỉnh sửa
+                </button>
+                <div *ngIf="editMode.images" class="d-flex gap-2">
+                  <button 
+                    class="btn btn-sm btn-success"
+                    (click)="saveSection('images')">
+                    <i class="fas fa-save me-1"></i> Lưu
+                  </button>
+                  <button 
+                    class="btn btn-sm btn-secondary"
+                    (click)="cancelEdit('images')">
+                    <i class="fas fa-times me-1"></i> Hủy
+                  </button>
+                </div>
+              </div>
+              <div class="card-body">
+                <div class="photo-gallery-preview" *ngIf="property.images && property.images.length > 0">
+                  <div class="photo-grid">
+                    <!-- First Image (Large) -->
+                    <div class="photo-item photo-large" *ngIf="property.images.length >= 1">
+                      <img [src]="getPropertyImage(0)" 
+                           [alt]="property.name"
+                           (click)="openImageModal(0)">
+                    </div>
+                    
+                    <!-- Second Image (Medium) -->
+                    <div class="photo-item photo-medium" *ngIf="property.images.length >= 2">
+                      <img [src]="getPropertyImage(1)" 
+                           [alt]="property.name"
+                           (click)="openImageModal(1)">
+                    </div>
+                    
+                    <!-- Third Image (Medium) with "Show all photos" overlay -->
+                    <div class="photo-item photo-medium photo-show-all" *ngIf="property.images.length >= 3">
+                      <img [src]="getPropertyImage(2)" 
+                           [alt]="property.name"
+                           (click)="openImageModal(2)">
+                      <div class="photo-overlay" (click)="openImageModal(2)">
+                        <i class="bi bi-grid-3x3-gap"></i>
+                        <span>Hiển thị tất cả {{ property.images.length }} ảnh</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <p *ngIf="!property.images || property.images.length === 0" class="text-muted">
+                  Chưa có hình ảnh nào
+                </p>
+              </div>
+            </div>
+          </section>
+          
+          <hr>
+          
+          <!-- Amenities Section -->
+          <section id="amenities" class="mb-4">
+            <div class="card">
+              <div class="card-header d-flex justify-content-between align-items-center">
+                <h3 class="mb-0"><i class="fas fa-star me-2"></i>Tiện ích nổi bật</h3>
+                <button 
+                  class="btn btn-sm btn-outline-primary"
+                  *ngIf="!editMode.amenities"
+                  (click)="toggleEditMode('amenities')">
+                  <i class="fas fa-edit me-1"></i> Chỉnh sửa
+                </button>
+                <div *ngIf="editMode.amenities" class="d-flex gap-2">
+                  <button 
+                    class="btn btn-sm btn-success"
+                    (click)="saveSection('amenities')">
+                    <i class="fas fa-save me-1"></i> Lưu
+                  </button>
+                  <button 
+                    class="btn btn-sm btn-secondary"
+                    (click)="cancelEdit('amenities')">
+                    <i class="fas fa-times me-1"></i> Hủy
+                  </button>
+                </div>
+              </div>
+              <div class="card-body">
+                <div class="row" *ngIf="property.amenities && property.amenities.length > 0">
+                  <div class="col-md-6 col-12" *ngFor="let amenity of property.amenities">
+                    <div class="amenity-item">
+                      <div class="amenity-icon">
+                        <img [src]="getIconUrl(amenity.iconUrl)" 
+                             [alt]="amenity.amenityName"
+                             onerror="this.style.display='none'">
+                      </div>
+                      <div>
+                        <strong>{{ amenity.amenityName }}</strong>
+                        <p class="text-muted small mb-0">{{ amenity.description }}</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <p *ngIf="!property.amenities || property.amenities.length === 0" class="text-muted">
+                  Không có thông tin tiện ích
+                </p>
+              </div>
+            </div>
+          </section>
+          
+          <hr>
+
+          <!-- Facilities Section -->
+          <section id="facilities" class="mb-4">
+            <div class="card">
+              <div class="card-header d-flex justify-content-between align-items-center">
+                <h3 class="mb-0"><i class="fas fa-couch me-2"></i>Các thiết bị có sẵn</h3>
+                <button 
+                  class="btn btn-sm btn-outline-primary"
+                  *ngIf="!editMode.facilities"
+                  (click)="toggleEditMode('facilities')">
+                  <i class="fas fa-edit me-1"></i> Chỉnh sửa
+                </button>
+                <div *ngIf="editMode.facilities" class="d-flex gap-2">
+                  <button 
+                    class="btn btn-sm btn-success"
+                    (click)="saveSection('facilities')">
+                    <i class="fas fa-save me-1"></i> Lưu
+                  </button>
+                  <button 
+                    class="btn btn-sm btn-secondary"
+                    (click)="cancelEdit('facilities')">
+                    <i class="fas fa-times me-1"></i> Hủy
+                  </button>
+                </div>
+              </div>
+              <div class="card-body">
+                <div class="row" *ngIf="property.facilities && property.facilities.length > 0">
+                  <div class="col-md-6 col-12" *ngFor="let facility of property.facilities">
+                    <div class="facility-item">
+                      <div class="facility-icon">
+                        <img [src]="getIconUrl(facility.iconUrl)" 
+                             [alt]="facility.facilityName"
+                             onerror="this.style.display='none'">
+                      </div>
+                      <div class="flex-grow-1">
+                        <div class="d-flex justify-content-between align-items-start">
+                          <div>
+                            <strong>{{ facility.facilityName }}</strong>
+                            <p class="text-muted small mb-0">Số lượng: {{ facility.quantity }}</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <p *ngIf="!property.facilities || property.facilities.length === 0" class="text-muted">
+                  Không có thông tin thiết bị
+                </p>
+                
+                <div class="note mt-4 p-3" style="background-color: #2d3e50; border-left: 4px solid #60a5fa;">
+                  <h5 class="mb-2" style="color: #ffffff;">Lưu ý quan trọng về việc sử dụng tài sản</h5>
+                  <p class="mb-0" style="color: #cbd5e0;">
+                    Để đảm bảo trải nghiệm tốt nhất cho tất cả khách hàng và duy trì chất lượng dịch vụ, 
+                    chúng tôi trân trọng đề nghị Quý khách vui lòng bảo quản cẩn thận các trang thiết bị 
+                    và vật dụng đã được cung cấp trong phòng. Trong trường hợp xảy ra hư hỏng hoặc mất mát 
+                    do quá trình sử dụng, chi phí sửa chữa hoặc thay thế tương đương với giá trị của vật dụng 
+                    tại thời điểm hiện tại sẽ được áp dụng.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- Action Buttons -->
+          <div class="d-flex gap-3 justify-content-center my-5">
+            <button class="btn btn-lg btn-secondary" (click)="goBack()">
+              <i class="fas fa-arrow-left me-2"></i>
+              Quay lại
+            </button>
+            <button class="btn btn-lg btn-primary" disabled>
+              <i class="fas fa-save me-2"></i>
+              Lưu tất cả thay đổi
+              <small class="d-block">(Sẽ được triển khai)</small>
+            </button>
+          </div>
+          
+        </div>
+        
+      </div>
+    </div>
+  </div>
+</main>
+
+<!-- Image Modal -->
+<div class="image-modal" *ngIf="isImageModalOpen" (click)="closeImageModal()">
+  <div class="modal-overlay"></div>
+  
+  <div class="modal-content" (click)="$event.stopPropagation()">
+    <!-- Modal Header -->
+    <div class="modal-header">
+      <h3>{{ currentImageIndex + 1 }} / {{ property?.images?.length || 0 }}</h3>
+      <button class="close-btn" (click)="closeImageModal()">
+        <i class="bi bi-x-lg"></i>
+      </button>
+    </div>
+    
+    <!-- Main Image Display -->
+    <div class="modal-body">
+      <button class="nav-btn prev-btn" 
+              [disabled]="currentImageIndex === 0"
+              (click)="previousImage(); $event.stopPropagation()">
+        <i class="bi bi-chevron-left"></i>
+      </button>
+      
+      <div class="main-image-container">
+        <img [src]="getPropertyImage(currentImageIndex)" 
+             [alt]="property?.name"
+             class="main-image">
+      </div>
+      
+      <button class="nav-btn next-btn" 
+              [disabled]="currentImageIndex === (property?.images?.length || 0) - 1"
+              (click)="nextImage(); $event.stopPropagation()">
+        <i class="bi bi-chevron-right"></i>
+      </button>
+    </div>
+    
+    <!-- Thumbnails -->
+    <div class="modal-footer">
+      <div class="thumbnails-container">
+        <div class="thumbnail-wrapper" 
+             *ngFor="let image of property?.images; let i = index"
+             [class.active]="i === currentImageIndex"
+             (click)="selectImage(i); $event.stopPropagation()">
+          <img [src]="getPropertyImage(i)" 
+               [alt]="'Image ' + (i + 1)"
+               class="thumbnail">
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<app-footer></app-footer>
+

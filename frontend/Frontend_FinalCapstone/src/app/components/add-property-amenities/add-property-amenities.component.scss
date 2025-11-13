@@ -1,0 +1,350 @@
+.amenities-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #1a1f2e 0%, #2d3e50 100%);
+}
+
+// Header Section
+.header-section {
+  margin-bottom: 3rem;
+  text-align: center;
+
+  .btn-back {
+    position: absolute;
+    left: 2rem;
+    top: 2rem;
+    background: transparent;
+    border: 1px solid #60a5fa;
+    color: #60a5fa;
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+
+    &:hover {
+      background: #60a5fa;
+      color: white;
+      transform: translateX(-5px);
+    }
+
+    i {
+      margin-right: 0.5rem;
+    }
+  }
+
+  .page-title {
+    color: white;
+    font-size: 2rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+  }
+
+  .page-subtitle {
+    color: #94a3b8;
+    font-size: 1.1rem;
+  }
+}
+
+// Loading State
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 0;
+
+  .spinner-border {
+    width: 3rem;
+    height: 3rem;
+    margin-bottom: 1rem;
+  }
+
+  .loading-text {
+    color: #94a3b8;
+    font-size: 1.1rem;
+  }
+}
+
+// Amenities Grid
+.amenities-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+// Amenity Card (Button Toggle Style)
+.amenity-card {
+  background: #2d3e50;
+  border: 2px solid #3d4f64;
+  border-radius: 12px;
+  padding: 1.5rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+
+  &:hover {
+    border-color: #60a5fa;
+    transform: translateY(-5px);
+    box-shadow: 0 8px 20px rgba(96, 165, 250, 0.2);
+  }
+
+  &.selected {
+    background: linear-gradient(135deg, #3b82f6 0%, #60a5fa 100%);
+    border-color: #60a5fa;
+    box-shadow: 0 8px 25px rgba(96, 165, 250, 0.4);
+
+    .amenity-name,
+    .amenity-description {
+      color: white;
+    }
+
+    .check-icon {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  .amenity-icon {
+    width: 64px;
+    height: 64px;
+    margin-bottom: 1rem;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.75rem;
+
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      filter: brightness(0) invert(1); // Make icon white
+    }
+  }
+
+  .amenity-info {
+    flex: 1;
+
+    .amenity-name {
+      color: #e5e7eb;
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+    }
+
+    .amenity-description {
+      color: #94a3b8;
+      font-size: 0.9rem;
+      line-height: 1.4;
+      margin: 0;
+    }
+  }
+
+  .check-icon {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    font-size: 1.5rem;
+    color: white;
+    opacity: 0;
+    transform: scale(0);
+    transition: all 0.3s ease;
+  }
+}
+
+// Empty State
+.empty-state {
+  text-align: center;
+  padding: 4rem 2rem;
+  color: #94a3b8;
+
+  i {
+    font-size: 4rem;
+    margin-bottom: 1rem;
+    display: block;
+  }
+
+  p {
+    font-size: 1.2rem;
+  }
+}
+
+// Selected Count
+.selected-count {
+  background: #2d3e50;
+  border: 1px solid #3d4f64;
+  border-radius: 8px;
+  padding: 1rem 1.5rem;
+  text-align: center;
+  margin-bottom: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+
+  i {
+    color: #60a5fa;
+    font-size: 1.2rem;
+  }
+
+  span {
+    color: #e5e7eb;
+    font-size: 1.1rem;
+    font-weight: 500;
+  }
+}
+
+// Action Buttons
+.action-buttons {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  margin-top: 2rem;
+
+  .btn {
+    padding: 0.75rem 2rem;
+    font-size: 1.1rem;
+    border-radius: 8px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+  }
+
+  .btn-skip {
+    background: transparent;
+    border: 1px solid #60a5fa;
+    color: #60a5fa;
+
+    &:hover:not(:disabled) {
+      background: #60a5fa;
+      color: white;
+    }
+  }
+
+  .btn-submit {
+    background: linear-gradient(135deg, #3b82f6 0%, #60a5fa 100%);
+    border: none;
+    color: white;
+    min-width: 150px;
+
+    &:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(96, 165, 250, 0.4);
+    }
+  }
+}
+
+// Modal Styles
+.modal {
+  background: rgba(0, 0, 0, 0.7);
+
+  &.show {
+    display: block !important;
+  }
+
+  .modal-content {
+    background: #2d3e50;
+    border: 1px solid #3d4f64;
+    color: #e5e7eb;
+  }
+
+  .modal-header {
+    border-bottom: 1px solid #3d4f64;
+
+    &.bg-success {
+      background: linear-gradient(135deg, #10b981 0%, #34d399 100%) !important;
+    }
+
+    &.bg-danger {
+      background: linear-gradient(135deg, #ef4444 0%, #f87171 100%) !important;
+    }
+
+    .modal-title {
+      i {
+        margin-right: 0.5rem;
+      }
+    }
+  }
+
+  .modal-body {
+    padding: 1.5rem;
+    
+    p {
+      margin: 0;
+      font-size: 1.05rem;
+    }
+  }
+
+  .modal-footer {
+    border-top: 1px solid #3d4f64;
+
+    .btn-primary {
+      background: linear-gradient(135deg, #3b82f6 0%, #60a5fa 100%);
+      border: none;
+
+      &:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(96, 165, 250, 0.4);
+      }
+    }
+  }
+}
+
+.modal-backdrop {
+  background: rgba(0, 0, 0, 0.7);
+
+  &.show {
+    opacity: 1;
+  }
+}
+
+// Responsive Design
+@media (max-width: 768px) {
+  .amenities-container {
+    padding: 1rem;
+  }
+
+  .header-section {
+    .btn-back {
+      position: relative;
+      left: 0;
+      top: 0;
+      margin-bottom: 1rem;
+      display: inline-block;
+    }
+
+    .page-title {
+      font-size: 1.5rem;
+    }
+
+    .page-subtitle {
+      font-size: 1rem;
+    }
+  }
+
+  .amenities-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .action-buttons {
+    flex-direction: column;
+
+    .btn {
+      width: 100%;
+    }
+  }
+}
+

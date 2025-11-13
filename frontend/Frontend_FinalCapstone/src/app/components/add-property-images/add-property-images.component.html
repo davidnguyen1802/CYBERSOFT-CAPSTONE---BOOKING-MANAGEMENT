@@ -1,0 +1,223 @@
+<div class="add-property-images-container">
+  <!-- Header -->
+  <div class="header">
+    <div class="header-content">
+      <button class="btn-back" (click)="goBack()">
+        <i class="fas fa-arrow-left"></i> Quay lại
+      </button>
+      <h1 class="title">
+        <i class="fas fa-images"></i> Bước 3: Thêm ảnh cho chỗ ở
+      </h1>
+      <p class="subtitle">Tối thiểu 4 ảnh để thu hút khách hàng. Ảnh đầu tiên sẽ là ảnh đại diện.</p>
+    </div>
+  </div>
+
+  <!-- Progress Bar -->
+  <div class="progress-container">
+    <div class="progress-bar">
+      <div class="progress-fill" [style.width]="(getUploadedCount() / minImages * 100) + '%'"></div>
+    </div>
+    <div class="progress-text">
+      <span class="uploaded-count">{{ getUploadedCount() }}</span> / {{ minImages }} ảnh đã tải lên
+      <span class="optional-text" *ngIf="imageSlots.length > minImages">
+        (tổng {{ imageSlots.length }} slots)
+      </span>
+    </div>
+  </div>
+
+  <!-- Image Upload Grid -->
+  <div class="images-grid" 
+       [ngClass]="{'dragging': isDragging}"
+       (dragover)="onDragOver($event)"
+       (dragleave)="onDragLeave($event)"
+       (drop)="onDrop($event)">
+    <div class="image-slot" 
+         *ngFor="let slot of imageSlots; let i = index"
+         draggable="true"
+         (dragstart)="onSlotDragStart($event, i)"
+         (dragover)="onSlotDragOver($event)"
+         (drop)="onSlotDrop($event, i)"
+         [ngClass]="{'dragging-slot': draggedSlotIndex === i}">
+      
+      <!-- Upload Area with Drag & Drop -->
+      <div class="upload-area" 
+           *ngIf="!slot.preview" 
+           (click)="fileInput.click()"
+           (dragover)="onDragOver($event)"
+           (drop)="onDrop($event, i)">
+        <input 
+          #fileInput
+          type="file" 
+          accept="image/*"
+          multiple
+          (change)="onFileSelected($event, i)"
+          style="display: none">
+        <div class="upload-content">
+          <i class="fas fa-cloud-upload-alt upload-icon"></i>
+          <p class="upload-text">
+            <span *ngIf="slot.isMainImage" class="main-badge">Ảnh đại diện</span>
+            <span *ngIf="!slot.isMainImage">Ảnh {{ slot.id }}</span>
+          </p>
+          <p class="upload-hint">Nhấp hoặc kéo thả ảnh vào đây</p>
+        </div>
+      </div>
+
+      <!-- Preview Area with Reordering -->
+      <div class="preview-area" *ngIf="slot.preview">
+        <img [src]="slot.preview" 
+             [alt]="'Preview ' + slot.id"
+             (click)="openGallery(i)">
+        
+        <!-- Progress Bar Overlay -->
+        <div class="upload-progress-overlay" *ngIf="isSubmitting && slot.uploadProgress !== undefined && slot.uploadProgress < 100">
+          <div class="progress-bar-small">
+            <div class="progress-fill-small" [style.width]="slot.uploadProgress + '%'"></div>
+          </div>
+          <span class="progress-text-small">{{ slot.uploadProgress | number:'1.0-0' }}%</span>
+        </div>
+        
+        <div class="preview-overlay">
+          <div class="preview-actions">
+            <button class="btn-action btn-preview" (click)="openGallery(i)" title="Xem trước">
+              <i class="fas fa-eye"></i>
+            </button>
+            <button class="btn-action btn-set-main" 
+                    *ngIf="!slot.isMainImage" 
+                    (click)="setAsMainImage(i)"
+                    title="Đặt làm ảnh đại diện">
+              <i class="fas fa-star"></i>
+            </button>
+            <button class="btn-action btn-remove" (click)="removeImage(i)" title="Xóa">
+              <i class="fas fa-trash"></i>
+            </button>
+          </div>
+        </div>
+        
+        <div class="main-badge-overlay" *ngIf="slot.isMainImage">
+          <i class="fas fa-star"></i> Ảnh đại diện
+        </div>
+        
+        <div class="drag-handle">
+          <i class="fas fa-grip-vertical"></i>
+        </div>
+      </div>
+
+      <!-- Description Input -->
+      <div class="description-input" *ngIf="slot.preview">
+        <input 
+          type="text" 
+          [(ngModel)]="slot.description"
+          placeholder="Mô tả ảnh (không bắt buộc)"
+          maxlength="100">
+      </div>
+    </div>
+
+    <!-- Add More Slot Button -->
+    <div class="image-slot add-more-slot" *ngIf="canAddMore()">
+      <div class="add-more-area" (click)="addMoreSlots()">
+        <div class="add-more-content">
+          <i class="fas fa-plus-circle add-more-icon"></i>
+          <p class="add-more-text">Thêm ảnh</p>
+          <p class="add-more-hint">Tối đa {{ maxImages }} ảnh</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Guidelines -->
+  <div class="guidelines">
+    <h3><i class="fas fa-info-circle"></i> Hướng dẫn chọn ảnh tốt</h3>
+    <ul>
+      <li><i class="fas fa-check"></i> <strong>Tối thiểu {{ minImages }} ảnh</strong>, tối đa {{ maxImages }} ảnh</li>
+      <li><i class="fas fa-check"></i> Sử dụng ảnh có độ phân giải cao, rõ nét</li>
+      <li><i class="fas fa-check"></i> Chụp nhiều góc độ khác nhau (phòng khách, phòng ngủ, nhà bếp, view...)</li>
+      <li><i class="fas fa-check"></i> Ảnh đại diện nên là góc đẹp nhất của chỗ ở</li>
+      <li><i class="fas fa-check"></i> Tránh ảnh mờ, tối hoặc lộn xộn</li>
+      <li><i class="fas fa-info-circle"></i> Kích thước tối đa: 5MB mỗi ảnh</li>
+    </ul>
+  </div>
+
+  <!-- Action Buttons -->
+  <div class="action-buttons">
+    <button 
+      class="btn btn-secondary" 
+      (click)="goBack()"
+      [disabled]="isSubmitting">
+      Quay lại
+    </button>
+    <button 
+      class="btn btn-primary" 
+      (click)="onSubmit()"
+      [disabled]="!canSubmit() || isSubmitting">
+      <span *ngIf="!isSubmitting">
+        <i class="fas fa-check"></i> Hoàn thành
+      </span>
+      <span *ngIf="isSubmitting">
+        <i class="fas fa-spinner fa-spin"></i> Đang xử lý...
+      </span>
+    </button>
+  </div>
+</div>
+
+<!-- Preview Gallery Modal -->
+<div class="gallery-overlay" *ngIf="showGallery" (click)="closeGallery()">
+  <div class="gallery-container" (click)="$event.stopPropagation()">
+    <button class="gallery-close" (click)="closeGallery()">
+      <i class="fas fa-times"></i>
+    </button>
+    
+    <button class="gallery-nav gallery-prev" (click)="prevGalleryImage()">
+      <i class="fas fa-chevron-left"></i>
+    </button>
+    
+    <div class="gallery-main">
+      <img [src]="getUploadedImages()[currentGalleryIndex].preview" 
+           [alt]="'Gallery image ' + (currentGalleryIndex + 1)">
+      
+      <div class="gallery-info">
+        <span class="gallery-counter">
+          {{ currentGalleryIndex + 1 }} / {{ getUploadedImages().length }}
+        </span>
+        <span class="gallery-main-badge" *ngIf="getUploadedImages()[currentGalleryIndex].isMainImage">
+          <i class="fas fa-star"></i> Ảnh đại diện
+        </span>
+      </div>
+      
+      <div class="gallery-description" *ngIf="getUploadedImages()[currentGalleryIndex].description">
+        {{ getUploadedImages()[currentGalleryIndex].description }}
+      </div>
+    </div>
+    
+    <button class="gallery-nav gallery-next" (click)="nextGalleryImage()">
+      <i class="fas fa-chevron-right"></i>
+    </button>
+    
+    <!-- Thumbnail Strip -->
+    <div class="gallery-thumbnails">
+      <div class="thumbnail" 
+           *ngFor="let img of getUploadedImages(); let idx = index"
+           [ngClass]="{'active': idx === currentGalleryIndex}"
+           (click)="currentGalleryIndex = idx">
+        <img [src]="img.preview" [alt]="'Thumbnail ' + (idx + 1)">
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Success/Error Modal -->
+<div class="modal-overlay" *ngIf="showModal" (click)="closeModal()">
+  <div class="modal-content" (click)="$event.stopPropagation()">
+    <div class="modal-header" [ngClass]="modalType">
+      <i class="fas" [ngClass]="modalType === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'"></i>
+      <h2>{{ modalTitle }}</h2>
+    </div>
+    <div class="modal-body">
+      <p>{{ modalMessage }}</p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-primary" (click)="closeModal()">
+        Đóng
+      </button>
+    </div>
+  </div>
+</div>

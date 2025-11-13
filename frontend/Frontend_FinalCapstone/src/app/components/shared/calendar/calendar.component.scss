@@ -1,0 +1,413 @@
+.calendar-container {
+  display: flex;
+  height: calc(100vh - 120px);
+  gap: 24px;
+  background: #f8f9fa;
+  padding: 20px;
+
+  // SIDEBAR
+  .calendar-sidebar {
+    width: 280px;
+    flex-shrink: 0;
+    background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+    border-radius: 16px;
+    padding: 24px;
+    color: white;
+    box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
+
+    .sidebar-user-section {
+      margin-bottom: 32px;
+
+      .user-info {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+
+        .user-avatar {
+          width: 48px;
+          height: 48px;
+          border-radius: 50%;
+          background: rgba(255, 255, 255, 0.2);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+
+          .avatar-placeholder {
+            font-size: 24px;
+          }
+        }
+      }
+    }
+
+    .status-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+
+      .status-display-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 12px 16px;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 12px;
+        cursor: pointer;
+        transition: all 0.3s;
+
+        &:hover {
+          background: rgba(255, 255, 255, 0.2);
+          transform: translateX(4px);
+        }
+
+        .status-dot {
+          width: 12px;
+          height: 12px;
+          border-radius: 50%;
+          flex-shrink: 0;
+
+          &.all-status {
+            background: white;
+          }
+        }
+
+        .status-text {
+          flex: 1;
+          font-size: 14px;
+          font-weight: 500;
+        }
+
+        .status-count {
+          font-size: 14px;
+          font-weight: 700;
+          background: rgba(255, 255, 255, 0.2);
+          padding: 4px 10px;
+          border-radius: 12px;
+        }
+      }
+    }
+  }
+
+  // MAIN CALENDAR
+  .calendar-main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+    overflow: hidden;
+
+    .calendar-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 24px 32px;
+      border-bottom: 2px solid #f1f5f9;
+      background: linear-gradient(135deg, #1e293b 0%, #1e40af 40%, #4338ca 100%);
+      color: white;
+
+      .calendar-nav {
+        display: flex;
+        align-items: center;
+        gap: 20px;
+
+        .nav-btn {
+          width: 40px;
+          height: 40px;
+          border-radius: 50%;
+          border: none;
+          background: rgba(255, 255, 255, 0.2);
+          color: white;
+          font-size: 24px;
+          cursor: pointer;
+          transition: all 0.3s;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+
+          &:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: scale(1.1);
+          }
+        }
+
+        .calendar-title {
+          font-size: 24px;
+          font-weight: 700;
+          margin: 0;
+          min-width: 200px;
+          text-align: center;
+        }
+      }
+
+      .view-controls {
+        display: flex;
+        gap: 8px;
+        background: rgba(255, 255, 255, 0.1);
+        padding: 4px;
+        border-radius: 12px;
+
+        .view-btn {
+          padding: 8px 20px;
+          border: none;
+          background: transparent;
+          color: rgba(255, 255, 255, 0.7);
+          border-radius: 8px;
+          cursor: pointer;
+          font-weight: 600;
+          transition: all 0.3s;
+
+          &.active {
+            background: white;
+            color: #4338ca;
+          }
+
+          &:hover:not(.active) {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+          }
+        }
+      }
+    }
+
+    // MONTH VIEW
+    .calendar-grid-wrapper {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      padding: 20px;
+      overflow-y: auto;
+
+      .calendar-weekdays {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        gap: 2px;
+        margin-bottom: 8px;
+
+        .weekday {
+          text-align: center;
+          font-size: 13px;
+          font-weight: 700;
+          color: #64748b;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+          padding: 12px 0;
+        }
+      }
+
+      .calendar-weeks {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+
+        .calendar-week {
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+
+          // Day cells row
+          .week-days-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 2px;
+
+            .calendar-day-cell {
+              min-height: 80px;
+              padding: 8px;
+              border: 1px solid #f1f5f9;
+              border-radius: 8px;
+              background: white;
+              cursor: pointer;
+              transition: all 0.2s;
+              position: relative;
+
+              &:hover {
+                background: #f8fafc;
+                border-color: #cbd5e1;
+              }
+
+              &.other-month {
+                background: #fafafa;
+
+                .day-number {
+                  color: #cbd5e1;
+                }
+              }
+
+              &.today {
+                border-color: #7c3aed;
+                background: #faf5ff;
+
+                .day-number {
+                  background: #7c3aed;
+                  color: white;
+                  border-radius: 50%;
+                  width: 24px;
+                  height: 24px;
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                }
+              }
+
+              .day-number {
+                font-size: 13px;
+                font-weight: 600;
+                color: #1e293b;
+              }
+            }
+          }
+
+          // Bookings overlay grid
+          .week-bookings-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 0 2px;
+            padding: 0;
+
+            .booking-segment {
+              position: relative;
+              padding: 4px 8px;
+              border-radius: 14px;
+              overflow: hidden;
+              white-space: nowrap;
+              text-overflow: ellipsis;
+              display: flex;
+              align-items: center;
+              font-size: 12px;
+              font-weight: 600;
+              color: white;
+              cursor: pointer;
+              transition: all 0.3s;
+              margin: 2px 4px;
+              height: 24px;
+
+              &:hover {
+                transform: translateY(-2px) scale(1.02);
+                box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+                z-index: 100;
+
+                .booking-tooltip {
+                  opacity: 1;
+                  visibility: visible;
+                  transform: translateY(0);
+                }
+              }
+
+              .booking-label {
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+              }
+
+              // Tooltip
+              .booking-tooltip {
+                position: absolute;
+                top: calc(100% + 10px);
+                left: 50%;
+                transform: translateX(-50%) translateY(-5px);
+                background: white;
+                border-radius: 10px;
+                padding: 16px;
+                box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+                opacity: 0;
+                visibility: hidden;
+                transition: all 0.3s ease;
+                z-index: 1000;
+                min-width: 280px;
+                pointer-events: none;
+                white-space: normal;
+
+                &::before {
+                  content: '';
+                  position: absolute;
+                  top: -6px;
+                  left: 50%;
+                  transform: translateX(-50%) rotate(45deg);
+                  width: 12px;
+                  height: 12px;
+                  background: white;
+                  box-shadow: -2px -2px 4px rgba(0, 0, 0, 0.05);
+                }
+
+                .tooltip-header {
+                  font-size: 14px;
+                  color: #1e293b;
+                  margin-bottom: 12px;
+                  padding-bottom: 10px;
+                  border-bottom: 2px solid #f1f5f9;
+
+                  strong {
+                    font-weight: 700;
+                  }
+                }
+
+                .tooltip-body {
+                  font-size: 13px;
+                  color: #64748b;
+
+                  p {
+                    margin: 8px 0;
+                    display: flex;
+                    justify-content: space-between;
+                    gap: 12px;
+
+                    strong {
+                      font-weight: 600;
+                      color: #475569;
+                    }
+
+                    .status-badge {
+                      padding: 4px 10px;
+                      border-radius: 12px;
+                      font-size: 11px;
+                      font-weight: 700;
+                      text-transform: uppercase;
+                      letter-spacing: 0.5px;
+                      background: #f1f5f9;
+                      color: #64748b;
+                    }
+                  }
+                }
+              }
+
+              // Status colors
+              &.status-pending {
+                background: linear-gradient(135deg, #a855f7 0%, #9333ea 100%);
+              }
+
+              &.status-confirmed {
+                background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+              }
+
+              &.status-paid {
+                background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+              }
+
+              &.status-completed {
+                background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
+              }
+
+              &.status-cancelled {
+                background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+              }
+
+              &.status-rejected {
+                background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+              }
+            }
+          }
+        }
+      }
+    }
+
+    // WEEK/DAY VIEWS
+    .week-view-container,
+    .day-view-container {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+  }
+}

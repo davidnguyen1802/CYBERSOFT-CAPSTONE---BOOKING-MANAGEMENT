@@ -1,0 +1,130 @@
+<div class="calendar-container">
+  <!-- SIDEBAR: Status Filter + Mini Calendar -->
+  <div class="calendar-sidebar">
+    <!-- User Avatar & Info -->
+    <div class="sidebar-user-section">
+      <div class="user-info">
+        <div class="user-avatar">
+          <div class="avatar-placeholder">👤</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Status Items - Display Only -->
+    <div class="status-list">
+      <div class="status-display-item">
+        <span class="status-dot all-status"></span>
+        <span class="status-text">All Booking Request</span>
+        <span class="status-count">{{ getBookingCountByStatus('ALL') }}</span>
+      </div>
+
+      <div 
+        *ngFor="let status of statusOptions"
+        class="status-display-item">
+        <span class="status-dot" [style.background]="status.color"></span>
+        <span class="status-text">{{ status.label }}</span>
+        <span class="status-count">{{ getBookingCountByStatus(status.value) }}</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAIN CALENDAR -->
+  <div class="calendar-main">
+    <!-- Header Controls -->
+    <div class="calendar-header">
+      <div class="calendar-nav">
+        <button class="nav-btn" (click)="previousPeriod()">‹</button>
+        <h2 class="calendar-title">{{ currentMonthYear }}</h2>
+        <button class="nav-btn" (click)="nextPeriod()">›</button>
+      </div>
+      
+      <div class="view-controls">
+        <button 
+          class="view-btn" 
+          [class.active]="viewMode === 'Day'"
+          (click)="setViewMode('Day')">
+          Day
+        </button>
+        <button 
+          class="view-btn" 
+          [class.active]="viewMode === 'Week'"
+          (click)="setViewMode('Week')">
+          Week
+        </button>
+        <button 
+          class="view-btn" 
+          [class.active]="viewMode === 'Month'"
+          (click)="setViewMode('Month')">
+          Month
+        </button>
+      </div>
+    </div>
+
+    <!-- MONTH VIEW: Week-by-Week Grid -->
+    <div class="calendar-grid-wrapper" *ngIf="viewMode === 'Month'">
+      <!-- Week days header -->
+      <div class="calendar-weekdays">
+        <div class="weekday" *ngFor="let day of weekDays">{{ day }}</div>
+      </div>
+
+      <!-- Week Rows -->
+      <div class="calendar-weeks">
+        <div 
+          *ngFor="let week of weeks; trackBy: trackByWeek"
+          class="calendar-week">
+          
+          <!-- Day Cells Row -->
+          <div class="week-days-grid">
+            <div 
+              *ngFor="let day of week.days; trackBy: trackByDay"
+              class="calendar-day-cell"
+              [class.other-month]="!isSameMonthAsView(day)"
+              [class.today]="isToday(day)"
+              (click)="handleDateClick(day)">
+              <div class="day-number">{{ getDayNumber(day) }}</div>
+            </div>
+          </div>
+
+          <!-- Bookings Layer (spans across all 7 columns) -->
+          <div 
+            class="week-bookings-grid"
+            [style.grid-template-rows]="getLaneRowsStyle(week.weekStartStr)">
+            <div 
+              *ngFor="let segment of getSegmentsForWeek(week.weekStartStr); trackBy: trackBySegment"
+              class="booking-segment"
+              [class]="segment.colorClass"
+              [style.grid-row]="segment.lane + 1"
+              [style.grid-column]="segment.startCol + ' / span ' + segment.span"
+              (click)="handleBookingClick(segment)">
+              <span class="booking-label">{{ segment.label }}</span>
+              
+              <!-- Tooltip -->
+              <div class="booking-tooltip">
+                <div class="tooltip-header">
+                  <strong>{{ segment.booking.propertyName || 'Property #' + segment.booking.propertyId }}</strong>
+                </div>
+                <div class="tooltip-body">
+                  <p><strong>Guest:</strong> {{ segment.label }}</p>
+                  <p><strong>Check-in:</strong> {{ formatDate(segment.booking.checkIn) }}</p>
+                  <p><strong>Check-out:</strong> {{ formatDate(segment.booking.checkOut) }}</p>
+                  <p><strong>Total:</strong> {{ formatPrice(segment.booking.totalPrice) }}</p>
+                  <p><strong>Status:</strong> <span class="status-badge">{{ segment.status }}</span></p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- WEEK VIEW: Single Week -->
+    <div class="week-view-container" *ngIf="viewMode === 'Week'">
+      <p class="text-muted text-center py-4">Week view - Coming soon</p>
+    </div>
+
+    <!-- DAY VIEW: Single Day -->
+    <div class="day-view-container" *ngIf="viewMode === 'Day'">
+      <p class="text-muted text-center py-4">Day view - Coming soon</p>
+    </div>
+  </div>
+</div>

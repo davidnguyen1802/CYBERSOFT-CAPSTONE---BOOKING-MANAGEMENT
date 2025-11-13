@@ -1,0 +1,166 @@
+<div class="booking-card">
+  <div class="card-header">
+    <div class="left-info">
+      <div class="property-icon">
+        <i class="fas fa-home"></i>
+      </div>
+      <div class="property-info">
+        <h3 class="property-name">{{ booking.propertyName || ('Property #' + booking.propertyId) }}</h3>
+        <span class="status-badge" [ngClass]="statusInfo.color">{{ statusInfo.text }}</span>
+      </div>
+    </div>
+    <div class="right-price">
+      <div class="price-label">Tổng giá</div>
+      <div class="price-container">
+        <div class="original-price" *ngIf="hasPromotion">{{ originalAmount | number:'1.0-0' }}đ</div>
+        <div class="final-price">{{ finalPrice | number:'1.0-0' }}đ</div>
+      </div>
+      <div class="savings-pill" *ngIf="discount > 0">
+        <i class="fas fa-piggy-bank"></i>
+        Tiết kiệm {{ discount | number:'1.0-0' }}đ
+      </div>
+    </div>
+  </div>
+
+  <div class="info-grid">
+    <div class="info-item">
+      <i class="fas fa-calendar-check icon-green"></i>
+      <div class="info-content">
+        <div class="label">Check-in:</div>
+        <div class="value">{{ booking.checkIn | date:'dd/MM/yyyy' }}</div>
+      </div>
+    </div>
+
+    <div class="info-item">
+      <i class="fas fa-calendar-times icon-red"></i>
+      <div class="info-content">
+        <div class="label">Check-out:</div>
+        <div class="value">{{ booking.checkOut | date:'dd/MM/yyyy' }}</div>
+      </div>
+    </div>
+
+    <div class="info-item">
+      <i class="fas fa-moon icon-purple"></i>
+      <div class="info-content">
+        <div class="label">Số đêm:</div>
+        <div class="value">{{ nights }} đêm</div>
+      </div>
+    </div>
+
+    <div class="info-item">
+      <i class="fas fa-users icon-orange"></i>
+      <div class="info-content">
+        <div class="label">Khách:</div>
+        <div class="value">{{ booking.numAdults }} người lớn</div>
+      </div>
+    </div>
+
+    <div class="info-item" *ngIf="booking.notes">
+      <i class="fas fa-sticky-note icon-yellow"></i>
+      <div class="info-content">
+        <div class="label">Ghi chú:</div>
+        <div class="value">{{ booking.notes }}</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="promo-box" *ngIf="hasPromotion">
+    <div class="promo-header">
+      <i class="fas fa-tag"></i>
+      <span>Mã khuyến mãi đã dùng:</span>
+      <strong>{{ booking.promotionCode }}</strong>
+    </div>
+    <div class="promo-details">
+      <div class="promo-row">
+        <span>Giá gốc:</span>
+        <span class="amount-muted">{{ originalAmount | number:'1.0-0' }}đ</span>
+      </div>
+      <div class="promo-row">
+        <span></span>
+        <span class="amount-discount">-{{ discount | number:'1.0-0' }}đ</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Payment Deadline Warning (for CONFIRMED bookings) -->
+  <div *ngIf="booking.status === 'CONFIRMED' && paymentDeadlineCountdown" 
+       class="payment-deadline-warning"
+       [class.urgent]="isNearDeadline"
+       [class.expired]="paymentDeadlineCountdown === 'Hết hạn'">
+    <i class="fas fa-clock" [class.fa-exclamation-circle]="paymentDeadlineCountdown === 'Hết hạn'"></i>
+    <span>{{ paymentDeadlineCountdown }}</span>
+    <span *ngIf="paymentDeadlineCountdown !== 'Hết hạn'"> để thanh toán</span>
+    <small *ngIf="isNearDeadline && paymentDeadlineCountdown !== 'Hết hạn'" class="urgent-text">⚠️ Sắp hết hạn!</small>
+  </div>
+
+  <!-- Confirmed Info Box (for CONFIRMED/PAID/COMPLETED bookings) -->
+  <div *ngIf="booking.confirmedAt && (booking.status === 'CONFIRMED' || booking.status === 'PAID' || booking.status === 'COMPLETED')" 
+       class="info-box confirmed-box">
+    <i class="fas fa-check-circle"></i>
+    <div class="info-text">
+      <strong>Đã xác nhận:</strong>
+      <span>{{ booking.confirmedAt | date:'dd/MM/yyyy HH:mm' }}</span>
+    </div>
+  </div>
+
+  <!-- Cancelled Info Box (for CANCELLED bookings) -->
+  <div *ngIf="booking.status === 'CANCELLED' && booking.cancelledAt" 
+       class="info-box cancelled-box">
+    <i class="fas fa-times-circle"></i>
+    <div class="info-content">
+      <div class="info-row">
+        <strong>Đã hủy:</strong>
+        <span>{{ booking.cancelledAt | date:'dd/MM/yyyy HH:mm' }}</span>
+      </div>
+      <div class="info-row" *ngIf="booking.cancelledBy">
+        <strong>Hủy bởi:</strong>
+        <span class="cancelled-by">{{ getCancelledByText(booking.cancelledBy) }}</span>
+      </div>
+      <div class="info-row reason-row" *ngIf="booking.cancelReason">
+        <strong>Lý do:</strong>
+        <span class="cancel-reason">{{ booking.cancelReason }}</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Rejected Info Box (for REJECTED bookings) -->
+  <div *ngIf="booking.status === 'REJECTED' && booking.cancelledAt" 
+       class="info-box rejected-box">
+    <i class="fas fa-ban"></i>
+    <div class="info-content">
+      <div class="info-row">
+        <strong>Bị từ chối:</strong>
+        <span>{{ booking.cancelledAt | date:'dd/MM/yyyy HH:mm' }}</span>
+      </div>
+      <div class="info-row reason-row" *ngIf="booking.cancelReason">
+        <strong>Lý do:</strong>
+        <span class="cancel-reason">{{ booking.cancelReason }}</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="card-footer">
+    <div class="meta-info">
+      <span>Đặt ngày: {{ booking.createdAt | date:'dd/MM/yyyy' }}</span>
+      <span>ID: #{{ booking.id }}</span>
+    </div>
+    <div class="actions">
+      <button class="btn btn-detail" (click)="handleViewDetail()">
+        <i class="fas fa-eye"></i>
+        Xem Chi Tiết
+      </button>
+      <button *ngIf="onPay" class="btn btn-pay" (click)="handlePay()">
+        <i class="fas fa-credit-card"></i>
+        Thanh Toán
+      </button>
+      <button *ngIf="onCancel" class="btn btn-cancel" (click)="handleCancel()">
+        <i class="fas fa-times"></i>
+        Hủy Booking
+      </button>
+      <button *ngIf="onDelete" class="btn btn-delete" (click)="handleDelete()">
+        <i class="fas fa-trash"></i>
+        Xóa
+      </button>
+    </div>
+  </div>
+</div>

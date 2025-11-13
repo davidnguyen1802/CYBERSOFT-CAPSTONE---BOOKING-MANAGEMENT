@@ -1,0 +1,224 @@
+<div class="calendar-container">
+  <!-- Purple Sidebar -->
+  <div class="calendar-sidebar">
+    <!-- Mini Calendar -->
+    <div class="mini-calendar">
+      <div class="mini-calendar-header">
+        <button class="nav-btn" (click)="miniCalendarPrevMonth()">‹</button>
+        <span class="mini-calendar-title">{{ miniCalendarMonthYear }}</span>
+        <button class="nav-btn" (click)="miniCalendarNextMonth()">›</button>
+      </div>
+      
+      <div class="mini-calendar-grid">
+        <!-- Week days header -->
+        <div class="mini-day-header" *ngFor="let day of ['M', 'T', 'W', 'T', 'F', 'S', 'S']">
+          {{ day }}
+        </div>
+        
+        <!-- Calendar days -->
+        <div 
+          *ngFor="let day of miniCalendarDays"
+          class="mini-day"
+          [class.other-month]="!day.isCurrentMonth"
+          [class.today]="day.isToday"
+          [class.selected]="day.date.toDateString() === currentDate.toDateString()"
+          (click)="selectMiniCalendarDay(day)">
+          {{ day.dayNumber }}
+        </div>
+      </div>
+    </div>
+
+    <!-- Booking Status Display (NO CHECKBOXES) -->
+    <div class="booking-status-section">
+      <div class="section-header">
+        <span>BOOKING STATUS</span>
+      </div>
+      
+      <!-- Status Items - Display Only -->
+      <div class="status-display-item">
+        <span class="status-dot all-status"></span>
+        <span class="status-text">All Booking Request</span>
+        <span class="status-count">{{ getBookingCountByStatus('ALL') }}</span>
+      </div>
+
+      <div 
+        *ngFor="let status of statusOptions"
+        class="status-display-item">
+        <span class="status-dot" [style.background]="status.color"></span>
+        <span class="status-text">{{ status.label }}</span>
+        <span class="status-count">{{ getBookingCountByStatus(status.value) }}</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Calendar -->
+  <div class="calendar-main">
+    <!-- Header Controls -->
+    <div class="calendar-header">
+      <div class="calendar-nav">
+        <button class="nav-btn" (click)="previousPeriod()">‹</button>
+        <h2 class="calendar-title">{{ currentMonthYear }}</h2>
+        <button class="nav-btn" (click)="nextPeriod()">›</button>
+      </div>
+      
+      <div class="view-controls">
+        <button 
+          class="view-btn" 
+          [class.active]="viewMode === 'Day'"
+          (click)="setViewMode('Day')">
+          Day
+        </button>
+        <button 
+          class="view-btn" 
+          [class.active]="viewMode === 'Week'"
+          (click)="setViewMode('Week')">
+          Week
+        </button>
+        <button 
+          class="view-btn" 
+          [class.active]="viewMode === 'Month'"
+          (click)="setViewMode('Month')">
+          Month
+        </button>
+        
+        <!-- User Avatar -->
+        <div class="user-avatar">
+          <div class="avatar-placeholder">👤</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MONTH VIEW: Calendar Grid with Multi-day Bookings -->
+    <div class="calendar-grid-wrapper" *ngIf="viewMode === 'Month'">
+      <!-- Week days header -->
+      <div class="calendar-weekdays">
+        <div class="weekday" *ngFor="let day of weekDays">{{ day }}</div>
+      </div>
+
+      <!-- Calendar Grid Container -->
+      <div class="calendar-grid-container">
+        <!-- Day cells grid (background) -->
+        <div class="calendar-days-grid">
+          <div 
+            *ngFor="let day of calendarDays; let dayIndex = index"
+            class="calendar-day-cell"
+            [class.other-month]="!day.isCurrentMonth"
+            [class.today]="day.isToday">
+            <div class="day-number">{{ day.dayNumber }}</div>
+          </div>
+        </div>
+
+        <!-- Bookings overlay grid (foreground) -->
+        <div class="calendar-bookings-grid">
+          <div 
+            *ngFor="let bookingBar of multiDayBookingBars"
+            class="booking-bar-positioned"
+            [style.grid-row]="Math.floor(bookingBar.dayIndex / 7) + 1"
+            [style.grid-column]="((bookingBar.dayIndex % 7) + 1) + ' / span ' + bookingBar.remainingDaysInRow"
+            [style.margin-top.px]="30 + (bookingBar.stackIndex * 28)">
+            <div 
+              class="booking-bar"
+              [class.booking-pending]="bookingBar.booking.status === 'PENDING'"
+              [class.booking-confirmed]="bookingBar.booking.status === 'CONFIRMED'"
+              [class.booking-paid]="bookingBar.booking.status === 'PAID'"
+              [class.booking-completed]="bookingBar.booking.status === 'COMPLETED'"
+              [class.booking-cancelled]="bookingBar.booking.status === 'CANCELLED'"
+              [class.booking-rejected]="bookingBar.booking.status === 'REJECTED'">
+              <span class="booking-name">{{ bookingBar.booking.userName || 'User #' + bookingBar.booking.userId }}</span>
+              
+              <!-- Hover Tooltip -->
+              <div class="booking-tooltip">
+                <div class="tooltip-header">
+                  <strong>{{ bookingBar.booking.propertyName || 'Property #' + bookingBar.booking.propertyId }}</strong>
+                </div>
+                <div class="tooltip-body">
+                  <p><strong>Guest:</strong> {{ bookingBar.booking.userName || 'User #' + bookingBar.booking.userId }}</p>
+                  <p><strong>Check-in:</strong> {{ formatDate(bookingBar.booking.checkIn) }}</p>
+                  <p><strong>Check-out:</strong> {{ formatDate(bookingBar.booking.checkOut) }}</p>
+                  <p><strong>Total:</strong> {{ formatPrice(bookingBar.booking.totalPrice) }}</p>
+                  <p><strong>Status:</strong> <span class="status-badge">{{ bookingBar.booking.status }}</span></p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- WEEK VIEW: List of days in week -->
+    <div class="week-view-container" *ngIf="viewMode === 'Week'">
+      <div class="calendar-weekdays">
+        <div class="weekday" *ngFor="let day of weekDays">{{ day }}</div>
+      </div>
+      
+      <div class="week-days-list">
+        <div 
+          *ngFor="let day of calendarDays"
+          class="day-item"
+          [class.today]="day.isToday"
+          (click)="onDateClick.emit(day.date)">
+          <div class="day-header">
+            <span class="day-number">{{ day.dayNumber }}</span>
+            <span class="day-name">{{ getDayName(day.date) }}</span>
+          </div>
+          <div class="day-bookings">
+            <div 
+              *ngFor="let booking of day.bookings"
+              class="booking-item"
+              [class.booking-pending]="booking.status === 'PENDING'"
+              [class.booking-confirmed]="booking.status === 'CONFIRMED'"
+              [class.booking-paid]="booking.status === 'PAID'"
+              [class.booking-completed]="booking.status === 'COMPLETED'"
+              [class.booking-cancelled]="booking.status === 'CANCELLED'"
+              [class.booking-rejected]="booking.status === 'REJECTED'">
+              <div class="booking-time">
+                {{ formatTime(booking.checkIn) }} - {{ formatTime(booking.checkOut) }}
+              </div>
+              <div class="booking-user">
+                👤 {{ booking.userName || 'User #' + booking.userId }}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- DAY VIEW: Single day with bookings list -->
+    <div class="day-view-container" *ngIf="viewMode === 'Day'">
+      <div class="day-view-header">
+        <h3>{{ formatFullDate(currentDate) }}</h3>
+      </div>
+      
+      <div class="day-bookings-list">
+        <div 
+          *ngFor="let booking of calendarDays[0]?.bookings"
+          class="booking-card"
+          [class.booking-pending]="booking.status === 'PENDING'"
+          [class.booking-confirmed]="booking.status === 'CONFIRMED'"
+          [class.booking-paid]="booking.status === 'PAID'"
+          [class.booking-completed]="booking.status === 'COMPLETED'"
+          [class.booking-cancelled]="booking.status === 'CANCELLED'"
+          [class.booking-rejected]="booking.status === 'REJECTED'">
+          <div class="booking-header">
+            <span class="booking-user">👤 {{ booking.userName || 'User #' + booking.userId }}</span>
+            <span class="booking-status">{{ booking.status }}</span>
+          </div>
+          <div class="booking-details">
+            <div class="booking-time">
+              <span>Check-in: {{ formatDateTime(booking.checkIn) }}</span>
+              <span>Check-out: {{ formatDateTime(booking.checkOut) }}</span>
+            </div>
+            <div class="booking-price">
+              Total: {{ booking.totalPrice | currency:'VND':'symbol':'1.0-0' }}
+            </div>
+          </div>
+        </div>
+        
+        <div *ngIf="!calendarDays[0]?.bookings?.length" class="no-bookings">
+          <p>No bookings for this day</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+

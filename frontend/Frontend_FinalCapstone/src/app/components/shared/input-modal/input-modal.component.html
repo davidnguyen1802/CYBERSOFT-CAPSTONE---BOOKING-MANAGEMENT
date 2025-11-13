@@ -1,0 +1,66 @@
+<div class="modal-backdrop" *ngIf="isVisible" (click)="handleBackdropClick($event)">
+  <div class="modal-dialog" (click)="$event.stopPropagation()">
+    <div class="modal-content">
+      <!-- Header -->
+      <div class="modal-header">
+        <h3 class="modal-title">{{ title }}</h3>
+        <button class="close-button" (click)="handleCancel()">&times;</button>
+      </div>
+
+      <!-- Body -->
+      <div class="modal-body">
+        <p class="modal-message" *ngIf="message">{{ message }}</p>
+        
+        <div class="form-group">
+          <label class="input-label">{{ inputLabel }}</label>
+          
+          <input 
+            *ngIf="inputType === 'text'"
+            type="text" 
+            class="form-control"
+            [(ngModel)]="inputValue"
+            [placeholder]="inputPlaceholder"
+            [maxLength]="maxLength"
+            (keyup.enter)="handleConfirm()"
+            autofocus>
+          
+          <textarea 
+            *ngIf="inputType === 'textarea'"
+            class="form-control textarea"
+            [(ngModel)]="inputValue"
+            [placeholder]="inputPlaceholder"
+            [maxLength]="maxLength"
+            rows="4"
+            autofocus></textarea>
+          
+          <div class="char-counter" *ngIf="inputType === 'textarea'">
+            {{ remainingChars }} characters remaining
+          </div>
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <div class="modal-footer">
+        <button class="btn btn-secondary" (click)="handleCancel()">
+          {{ cancelText }}
+        </button>
+        <button class="btn btn-danger" (click)="handleConfirm()">
+          {{ confirmText }}
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+

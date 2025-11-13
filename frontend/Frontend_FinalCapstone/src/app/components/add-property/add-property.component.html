@@ -1,0 +1,555 @@
+<app-header></app-header>
+
+<div class="add-property-container">
+  <div class="container py-4">
+    <!-- Header -->
+    <div class="page-header mb-4">
+      <h2><i class="fas fa-plus-circle"></i> Thêm chỗ ở mới</h2>
+      <p class="text-muted">Hoàn thành 4 bước dưới đây để tạo property hoàn chỉnh</p>
+    </div>
+
+    <!-- Progress Bar -->
+    <div class="progress-wrapper mb-4">
+      <div class="progress-bar-container">
+        <div class="progress-bar-fill" [style.width.%]="getProgressPercentage()"></div>
+      </div>
+      <div class="progress-text">Bước {{ currentStep }} / {{ totalSteps }}</div>
+    </div>
+
+    <!-- Step Tabs -->
+    <div class="step-tabs mb-4">
+      <button 
+        type="button"
+        class="step-tab" 
+        [class.active]="currentStep === 1"
+        [class.completed]="currentStep > 1"
+        (click)="goToStep(1)">
+        <div class="step-number">
+          <i class="fas fa-check" *ngIf="currentStep > 1"></i>
+          <span *ngIf="currentStep <= 1">1</span>
+        </div>
+        <span class="step-label">Thông tin cơ bản</span>
+      </button>
+      
+      <div class="step-connector" [class.completed]="currentStep > 1"></div>
+      
+      <button 
+        type="button"
+        class="step-tab" 
+        [class.active]="currentStep === 2"
+        [class.completed]="currentStep > 2"
+        [class.disabled]="!canAccessStep(2)"
+        [disabled]="!canAccessStep(2)"
+        (click)="goToStep(2)">
+        <div class="step-number">
+          <i class="fas fa-check" *ngIf="currentStep > 2"></i>
+          <span *ngIf="currentStep <= 2">2</span>
+      </div>
+        <span class="step-label">Chi tiết & Giá</span>
+      </button>
+      
+      <div class="step-connector" [class.completed]="currentStep > 2"></div>
+      
+      <button 
+        type="button"
+        class="step-tab" 
+        [class.active]="currentStep === 3"
+        [class.completed]="currentStep > 3"
+        [class.disabled]="!canAccessStep(3)"
+        [disabled]="!canAccessStep(3)"
+        (click)="goToStep(3)">
+        <div class="step-number">
+          <i class="fas fa-check" *ngIf="currentStep > 3"></i>
+          <span *ngIf="currentStep <= 3">3</span>
+      </div>
+        <span class="step-label">Thêm ảnh</span>
+      </button>
+      
+      <div class="step-connector" [class.completed]="currentStep > 3"></div>
+      
+      <button 
+        type="button"
+        class="step-tab" 
+        [class.active]="currentStep === 4"
+        [class.disabled]="!canAccessStep(4)"
+        [disabled]="!canAccessStep(4)"
+        (click)="goToStep(4)">
+        <div class="step-number">4</div>
+        <span class="step-label">Tiện nghi & Cơ sở vật chất</span>
+      </button>
+    </div>
+
+    <!-- Form -->
+    <form [formGroup]="propertyForm" (ngSubmit)="onSubmit()">
+      
+      <!-- ==================== STEP 1: Basic Information ==================== -->
+      <div class="step-content" *ngIf="currentStep === 1">
+        <div class="card">
+          <div class="card-header">
+            <h4><i class="fas fa-info-circle"></i> Bước 1: Thông tin cơ bản</h4>
+          </div>
+          <div class="card-body">
+            
+            <!-- Property Name -->
+            <div class="form-group mb-4">
+              <label for="propertyName" class="form-label required">Tên chỗ ở</label>
+              <input 
+                type="text" 
+                id="propertyName"
+                formControlName="propertyName" 
+                class="form-control" 
+                placeholder="VD: Căn hộ cao cấp view biển">
+            </div>
+
+            <!-- City and Location -->
+            <div class="row mb-4">
+              <div class="col-md-6">
+                <label for="selectedCity" class="form-label required">Thành phố</label>
+                <select 
+                  id="selectedCity"
+                  formControlName="selectedCity" 
+                  class="form-select" 
+                  (change)="onCityChange()">
+                  <option [ngValue]="null">Chọn thành phố</option>
+                  <option *ngFor="let city of cities" [ngValue]="city.cityName">
+                    {{ city.cityName }}
+                  </option>
+                </select>
+              </div>
+              
+              <div class="col-md-6">
+                <label for="locationId" class="form-label required">Địa điểm</label>
+                <select 
+                  id="locationId"
+                  formControlName="locationId" 
+                  class="form-select" 
+                  [disabled]="!propertyForm.get('selectedCity')?.value">
+                  <option [ngValue]="null">Chọn địa điểm</option>
+                  <option *ngFor="let location of locations" [ngValue]="location.id">
+                    {{ location.locationName }}
+                  </option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Full Address -->
+            <div class="form-group mb-4">
+              <label for="fullAddress" class="form-label required">Địa chỉ đầy đủ</label>
+              <input 
+                type="text" 
+                id="fullAddress"
+                formControlName="fullAddress" 
+                class="form-control" 
+                placeholder="VD: 123 Đường Trần Hưng Đạo, Phường 1, Quận 5">
+            </div>
+
+            <!-- Description -->
+            <div class="form-group mb-4">
+              <label for="description" class="form-label required">Mô tả</label>
+              <textarea 
+                id="description"
+                formControlName="description" 
+                class="form-control" 
+                rows="5"
+                placeholder="Mô tả chi tiết về chỗ ở của bạn..."></textarea>
+            </div>
+
+            <!-- Property Type -->
+            <div class="form-group mb-4">
+              <label class="form-label required">Loại hình chỗ ở</label>
+              <div class="property-type-selector">
+                <div 
+                  *ngFor="let type of propertyTypes" 
+                  class="property-type-box"
+                  [class.selected]="propertyForm.get('propertyType')?.value === type.value"
+                  (click)="selectPropertyType(type.value)">
+                  <div class="type-icon">
+                    <img [src]="type.icon" [alt]="type.label" onerror="this.style.display='none'">
+                  </div>
+                  <div class="type-label">{{ type.label }}</div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+          
+          <!-- Step 1 Actions -->
+          <div class="card-footer d-flex justify-content-between">
+            <button type="button" class="btn btn-outline-secondary" (click)="cancel()">
+              <i class="fas fa-times"></i> Hủy
+            </button>
+            <button 
+              type="button" 
+              class="btn btn-primary" 
+              (click)="nextStep()"
+              [disabled]="!isStep1Valid()">
+              Tiếp theo <i class="fas fa-arrow-right"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ==================== STEP 2: Details & Pricing ==================== -->
+      <div class="step-content" *ngIf="currentStep === 2">
+        <div class="card">
+          <div class="card-header">
+            <h4><i class="fas fa-dollar-sign"></i> Bước 2: Chi tiết & Giá</h4>
+          </div>
+          <div class="card-body">
+            
+            <!-- Price Per Night -->
+            <div class="form-group mb-4">
+              <label for="pricePerNight" class="form-label required">Giá mỗi đêm</label>
+              <div class="input-group">
+                <input 
+                  type="text" 
+                  id="pricePerNight"
+                  class="form-control price-input" 
+                  placeholder="0"
+                  (input)="onPriceInput($event)"
+                  (focus)="onPriceFocus($event)"
+                  (blur)="onPriceBlur($event)">
+                <span class="input-group-text">VND</span>
+              </div>
+              <small class="text-muted">VD: 500000 = 500.000 VND</small>
+            </div>
+
+            <!-- Room Configuration -->
+            <div class="section-header mb-3">
+              <h5><i class="fas fa-bed"></i> Cấu hình phòng</h5>
+            </div>
+
+            <div class="row mb-4">
+              <div class="col-md-6">
+                <label class="form-label required">Số phòng ngủ</label>
+                <div class="counter-control">
+                  <button type="button" class="btn-counter" (click)="decrementCounter('numberOfBedrooms')">
+                    <i class="fas fa-minus"></i>
+                  </button>
+                  <input type="number" formControlName="numberOfBedrooms" class="counter-input" readonly>
+                  <button type="button" class="btn-counter" (click)="incrementCounter('numberOfBedrooms')">
+                    <i class="fas fa-plus"></i>
+                  </button>
+                </div>
+              </div>
+
+              <div class="col-md-6">
+                <label class="form-label required">Số phòng tắm</label>
+                <div class="counter-control">
+                  <button type="button" class="btn-counter" (click)="decrementCounter('numberOfBathrooms')">
+                    <i class="fas fa-minus"></i>
+                  </button>
+                  <input type="number" formControlName="numberOfBathrooms" class="counter-input" readonly>
+                  <button type="button" class="btn-counter" (click)="incrementCounter('numberOfBathrooms')">
+                    <i class="fas fa-plus"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Guest Capacity -->
+            <div class="section-header mb-3">
+              <h5><i class="fas fa-users"></i> Sức chứa khách</h5>
+            </div>
+
+            <div class="row mb-4">
+              <div class="col-md-6 mb-3">
+                <label class="form-label required">Số người lớn tối đa</label>
+                <small class="text-muted d-block mb-2">Từ 18 tuổi trở lên</small>
+                <div class="counter-control">
+                  <button type="button" class="btn-counter" (click)="decrementCounter('maxAdults')">
+                    <i class="fas fa-minus"></i>
+                  </button>
+                  <input type="number" formControlName="maxAdults" class="counter-input" readonly>
+                  <button type="button" class="btn-counter" (click)="incrementCounter('maxAdults')">
+                    <i class="fas fa-plus"></i>
+                  </button>
+                </div>
+              </div>
+
+              <div class="col-md-6 mb-3">
+                <label class="form-label">Số trẻ em tối đa</label>
+                <small class="text-muted d-block mb-2">Độ tuổi 2 - 17</small>
+                <div class="counter-control">
+                  <button type="button" class="btn-counter" (click)="decrementCounter('maxChildren')">
+                    <i class="fas fa-minus"></i>
+                  </button>
+                  <input type="number" formControlName="maxChildren" class="counter-input" readonly>
+                  <button type="button" class="btn-counter" (click)="incrementCounter('maxChildren')">
+                    <i class="fas fa-plus"></i>
+                  </button>
+                </div>
+              </div>
+
+              <div class="col-md-6 mb-3">
+                <label class="form-label">Số em bé tối đa</label>
+                <small class="text-muted d-block mb-2">Dưới 2 tuổi</small>
+                <div class="counter-control">
+                  <button type="button" class="btn-counter" (click)="decrementCounter('maxInfants')">
+                    <i class="fas fa-minus"></i>
+                  </button>
+                  <input type="number" formControlName="maxInfants" class="counter-input" readonly>
+                  <button type="button" class="btn-counter" (click)="incrementCounter('maxInfants')">
+                    <i class="fas fa-plus"></i>
+                  </button>
+                </div>
+              </div>
+
+              <div class="col-md-6 mb-3">
+                <label class="form-label">Số thú cưng tối đa</label>
+                <small class="text-muted d-block mb-2">Chó, mèo hoặc động vật nuôi khác</small>
+                <div class="counter-control">
+                  <button type="button" class="btn-counter" (click)="decrementCounter('maxPets')">
+                    <i class="fas fa-minus"></i>
+                  </button>
+                  <input type="number" formControlName="maxPets" class="counter-input" readonly>
+                  <button type="button" class="btn-counter" (click)="incrementCounter('maxPets')">
+                    <i class="fas fa-plus"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+          </div>
+          
+          <!-- Step 2 Actions -->
+          <div class="card-footer d-flex justify-content-between">
+            <button type="button" class="btn btn-outline-secondary" (click)="previousStep()">
+              <i class="fas fa-arrow-left"></i> Quay lại
+            </button>
+            <button 
+              type="button" 
+              class="btn btn-primary" 
+              (click)="nextStep()"
+              [disabled]="!isStep2Valid()">
+              Tiếp theo <i class="fas fa-arrow-right"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ==================== STEP 3: Images ==================== -->
+      <div class="step-content" *ngIf="currentStep === 3">
+        <div class="card">
+          <div class="card-header">
+            <h4><i class="fas fa-images"></i> Bước 3: Thêm ảnh <span class="text-danger">*</span></h4>
+            <p class="mb-0 text-muted">Tối thiểu 4 ảnh, trong đó có 1 ảnh chính</p>
+          </div>
+          <div class="card-body">
+            
+            <!-- Image Upload Status -->
+            <div class="alert" [ngClass]="{
+              'alert-success': uploadedImages.length >= 4,
+              'alert-warning': uploadedImages.length > 0 && uploadedImages.length < 4,
+              'alert-info': uploadedImages.length === 0
+            }" *ngIf="uploadedImages.length < 4">
+              <i class="fas" [ngClass]="{
+                'fa-check-circle': uploadedImages.length >= 4,
+                'fa-exclamation-triangle': uploadedImages.length > 0 && uploadedImages.length < 4,
+                'fa-info-circle': uploadedImages.length === 0
+              }"></i>
+              <strong>Số ảnh đã tải:</strong> {{ uploadedImages.length }}/4
+              <span *ngIf="uploadedImages.length < 4"> - Cần thêm {{ 4 - uploadedImages.length }} ảnh nữa</span>
+            </div>
+
+            <div class="alert alert-success" *ngIf="uploadedImages.length >= 4">
+              <i class="fas fa-check-circle"></i>
+              <strong>Đã tải đủ ảnh!</strong> Có {{ uploadedImages.length }} ảnh
+            </div>
+
+            <!-- Upload Zone -->
+            <div class="upload-zone" 
+                 (click)="fileInput.click()"
+                 (dragover)="onDragOver($event)"
+                 (dragleave)="onDragLeave($event)"
+                 (drop)="onDrop($event)">
+              <i class="fas fa-cloud-upload-alt"></i>
+              <p>Nhấp để chọn ảnh hoặc kéo thả vào đây</p>
+              <small class="text-muted">PNG, JPG tối đa 5MB mỗi file - Tối thiểu 4 ảnh</small>
+              <input 
+                type="file" 
+                #fileInput
+                multiple 
+                accept="image/*"
+                (change)="onFilesSelected($event)"
+                style="display: none;">
+            </div>
+
+            <!-- Uploaded Images Grid -->
+            <div class="uploaded-images-grid" *ngIf="uploadedImages.length > 0">
+              <div 
+                *ngFor="let img of uploadedImages; let i = index" 
+                class="image-card"
+                [class.main-image]="img.isMainImage">
+                <div class="image-preview">
+                  <img [src]="img.preview" [alt]="'Image ' + (i + 1)">
+                  <div class="image-overlay">
+                    <button 
+                      type="button" 
+                      class="btn-overlay btn-delete" 
+                      (click)="removeImage(i)"
+                      title="Xóa ảnh">
+                      <i class="fas fa-trash"></i>
+                    </button>
+                    <button 
+                      type="button" 
+                      class="btn-overlay btn-main" 
+                      *ngIf="!img.isMainImage"
+                      (click)="setMainImage(i)"
+                      title="Đặt làm ảnh chính">
+                      <i class="fas fa-star"></i>
+                    </button>
+                  </div>
+                  <span class="main-badge" *ngIf="img.isMainImage">
+                    <i class="fas fa-star"></i> Ảnh chính
+                  </span>
+                </div>
+                <div class="image-description">
+                  <input 
+                    type="text" 
+                    class="form-control form-control-sm" 
+                    [(ngModel)]="img.description"
+                    [ngModelOptions]="{standalone: true}"
+                    placeholder="Mô tả ảnh (tùy chọn)">
+                </div>
+              </div>
+            </div>
+
+            <p class="text-muted text-center mt-3" *ngIf="uploadedImages.length === 0">
+              <i class="fas fa-info-circle"></i> Chưa có ảnh nào. Bạn có thể thêm ảnh hoặc bỏ qua bước này.
+            </p>
+
+          </div>
+          
+          <!-- Step 3 Actions -->
+          <div class="card-footer d-flex justify-content-between">
+            <button type="button" class="btn btn-outline-secondary" (click)="previousStep()">
+              <i class="fas fa-arrow-left"></i> Quay lại
+            </button>
+            <div class="d-flex flex-column align-items-end">
+              <button 
+                type="button" 
+                class="btn btn-primary" 
+                (click)="nextStep()"
+                [disabled]="!isStep3Valid()">
+                Tiếp theo <i class="fas fa-arrow-right"></i>
+              </button>
+              <small class="text-danger mt-2" *ngIf="!isStep3Valid()">
+                <i class="fas fa-info-circle"></i>
+                <span *ngIf="uploadedImages.length < 4">Cần thêm {{ 4 - uploadedImages.length }} ảnh nữa</span>
+                <span *ngIf="uploadedImages.length >= 4 && !hasMainImage()">Vui lòng chọn 1 ảnh làm ảnh chính</span>
+              </small>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ==================== STEP 4: Amenities & Facilities ==================== -->
+      <div class="step-content" *ngIf="currentStep === 4">
+        <div class="card">
+          <div class="card-header">
+            <h4><i class="fas fa-star"></i> Bước 4: Tiện nghi & Cơ sở vật chất (Tùy chọn)</h4>
+          </div>
+          <div class="card-body">
+            
+            <!-- Amenities Section -->
+            <div class="section-header mb-3">
+              <h5><i class="fas fa-check-circle"></i> Tiện nghi</h5>
+              <p class="text-muted">Chọn các tiện nghi có trong chỗ ở của bạn</p>
+            </div>
+
+            <div class="amenities-grid mb-4" *ngIf="amenities.length > 0">
+              <div 
+                *ngFor="let amenity of amenities" 
+                class="amenity-item"
+                [class.selected]="isAmenitySelected(amenity.id)"
+                (click)="toggleAmenity(amenity.id)">
+                <img 
+                  [src]="getAmenityIconUrl(amenity.iconUrl)" 
+                  [alt]="amenity.amenityName"
+                  class="amenity-icon"
+                  onerror="this.style.display='none'">
+                <span class="amenity-name">{{ amenity.amenityName }}</span>
+                <i class="fas fa-check-circle check-icon" *ngIf="isAmenitySelected(amenity.id)"></i>
+              </div>
+            </div>
+
+            <div class="alert alert-info" *ngIf="amenities.length === 0">
+              <i class="fas fa-info-circle"></i> Đang tải danh sách tiện nghi...
+            </div>
+
+            <hr class="my-4">
+
+            <!-- Facilities Section -->
+            <div class="section-header mb-3">
+              <h5><i class="fas fa-building"></i> Cơ sở vật chất</h5>
+              <p class="text-muted">Chọn các cơ sở vật chất xung quanh chỗ ở</p>
+            </div>
+
+            <div class="facilities-grid mb-4" *ngIf="facilities.length > 0">
+              <div 
+                *ngFor="let facility of facilities" 
+                class="facility-item"
+                [class.selected]="isFacilitySelected(facility.id)"
+                (click)="toggleFacility(facility.id)">
+                <img 
+                  [src]="getFacilityIconUrl(facility.iconUrl)" 
+                  [alt]="facility.facilityName"
+                  class="facility-icon"
+                  onerror="this.style.display='none'">
+                <span class="facility-name">{{ facility.facilityName }}</span>
+                <i class="fas fa-check-circle check-icon" *ngIf="isFacilitySelected(facility.id)"></i>
+              </div>
+            </div>
+
+            <div class="alert alert-info" *ngIf="facilities.length === 0">
+              <i class="fas fa-info-circle"></i> Đang tải danh sách cơ sở vật chất...
+            </div>
+
+            <div class="text-muted text-center mt-3">
+              <small>
+                <i class="fas fa-info-circle"></i> 
+                Đã chọn: {{ selectedAmenityIds.size }} tiện nghi, {{ selectedFacilityIds.size }} cơ sở vật chất
+              </small>
+            </div>
+
+          </div>
+          
+          <!-- Step 4 Actions -->
+          <div class="card-footer d-flex justify-content-between">
+            <button type="button" class="btn btn-outline-secondary" (click)="previousStep()">
+              <i class="fas fa-arrow-left"></i> Quay lại
+            </button>
+            <button 
+              type="submit" 
+              class="btn btn-success btn-lg" 
+              [disabled]="!canSubmit() || isSubmitting">
+              <span *ngIf="!isSubmitting">
+                <i class="fas fa-check-circle"></i> Hoàn tất tạo property
+              </span>
+              <span *ngIf="isSubmitting">
+                <i class="fas fa-spinner fa-spin"></i> Đang tạo...
+              </span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+    </form>
+  </div>
+</div>
+
+<!-- Modal Notification -->
+<div class="custom-modal-overlay" *ngIf="showModal" (click)="closeModal()">
+  <div class="custom-modal" [class.success]="modalType === 'success'" [class.error]="modalType === 'error'" (click)="$event.stopPropagation()">
+    <div class="modal-icon">
+      <i class="fas fa-check-circle" *ngIf="modalType === 'success'"></i>
+      <i class="fas fa-exclamation-circle" *ngIf="modalType === 'error'"></i>
+    </div>
+    <h3 class="modal-title">{{ modalTitle }}</h3>
+    <p class="modal-message">{{ modalMessage }}</p>
+    <button type="button" class="modal-btn" (click)="closeModal()">
+      Đóng
+    </button>
+  </div>
+</div>

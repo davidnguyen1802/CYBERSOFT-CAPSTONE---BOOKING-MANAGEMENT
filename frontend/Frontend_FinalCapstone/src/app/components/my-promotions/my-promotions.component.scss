@@ -1,0 +1,287 @@
+.user-promotions-container {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  padding-top: 80px;
+
+  .page-header {
+    text-align: center;
+    
+    .page-title {
+      font-size: 2.5rem;
+      font-weight: 700;
+      color: #2c3e50;
+      margin-bottom: 0.5rem;
+    }
+  }
+
+  .section-title {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #2c3e50;
+    margin-bottom: 1.5rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid #e0e0e0;
+  }
+
+  // Promotion Card Styles
+  .promotion-card {
+    position: relative;
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+    transition: all 0.3s ease;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+
+    &:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 8px 15px rgba(0, 0, 0, 0.2);
+    }
+
+    .card-badge {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      z-index: 10;
+    }
+
+    .badge-active {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
+
+    .badge-expiring {
+      top: 40px;
+      background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+      color: white;
+      animation: pulse 2s infinite;
+    }
+
+    .badge-used {
+      background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+      color: white;
+    }
+
+    .badge-expired {
+      background: linear-gradient(135deg, #868f96 0%, #596164 100%);
+      color: white;
+    }
+
+    .promotion-header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      padding: 2rem 1.5rem;
+      text-align: center;
+      color: white;
+
+      .promotion-icon {
+        font-size: 2.5rem;
+        margin-bottom: 0.5rem;
+        
+        i {
+          filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+        }
+      }
+
+      .promotion-name {
+        font-size: 1.5rem;
+        font-weight: 700;
+        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+      }
+    }
+
+    .promotion-body {
+      padding: 1.5rem;
+      flex-grow: 1;
+
+      .promotion-code-container {
+        margin-bottom: 1rem;
+
+        .code-label {
+          font-size: 0.875rem;
+          color: #6c757d;
+          display: block;
+          margin-bottom: 0.5rem;
+        }
+
+        .code-display {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          background: #f8f9fa;
+          border: 2px dashed #667eea;
+          border-radius: 8px;
+          padding: 0.75rem 1rem;
+
+          &.disabled {
+            border-color: #dee2e6;
+            opacity: 0.6;
+          }
+
+          .code-text {
+            font-family: 'Courier New', monospace;
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #667eea;
+            letter-spacing: 1px;
+          }
+
+          .btn-copy {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 0.25rem 0.75rem;
+            border-radius: 6px;
+            transition: all 0.3s ease;
+
+            &:hover {
+              background: #764ba2;
+              transform: scale(1.1);
+            }
+          }
+        }
+      }
+
+      .promotion-dates {
+        border-top: 1px solid #e9ecef;
+        padding-top: 1rem;
+
+        .date-item {
+          color: #6c757d;
+          margin-bottom: 0.5rem;
+
+          i {
+            color: #667eea;
+          }
+        }
+      }
+
+      .usage-details {
+        background: #f8f9fa;
+        border-left: 4px solid #4facfe;
+        padding: 0.75rem;
+        border-radius: 4px;
+        margin-top: 1rem;
+
+        .usage-item {
+          color: #495057;
+          margin-bottom: 0.25rem;
+
+          &:last-child {
+            margin-bottom: 0;
+          }
+
+          i {
+            color: #4facfe;
+          }
+
+          small {
+            font-size: 0.875rem;
+          }
+        }
+      }
+    }
+
+    .promotion-footer {
+      padding: 0 1.5rem 1.5rem;
+
+      .btn-primary {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border: none;
+        font-weight: 600;
+        padding: 0.75rem;
+        border-radius: 8px;
+        transition: all 0.3s ease;
+
+        &:hover {
+          transform: scale(1.05);
+          box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+      }
+    }
+
+    // Card Type Specific Styles
+    &.active-card {
+      border: 2px solid #667eea;
+
+      .promotion-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      }
+    }
+
+    &.used-card {
+      .promotion-header {
+        background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+      }
+
+      .code-text {
+        color: #4facfe;
+      }
+    }
+
+    &.expired-card {
+      opacity: 0.7;
+
+      .promotion-header {
+        background: linear-gradient(135deg, #868f96 0%, #596164 100%);
+      }
+
+      .code-text {
+        color: #868f96;
+      }
+    }
+  }
+
+  // Empty State
+  .empty-state {
+    background: white;
+    border-radius: 16px;
+    padding: 3rem 2rem;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+
+    i {
+      opacity: 0.3;
+    }
+
+    h3 {
+      color: #2c3e50;
+      margin-top: 1rem;
+    }
+  }
+
+  // Animations
+  @keyframes pulse {
+    0%, 100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.7;
+    }
+  }
+
+  // Responsive
+  @media (max-width: 768px) {
+    .page-header .page-title {
+      font-size: 1.75rem;
+    }
+
+    .section-title {
+      font-size: 1.25rem;
+    }
+
+    .promotion-card {
+      .promotion-header .promotion-name {
+        font-size: 1.25rem;
+      }
+
+      .promotion-body .promotion-code-container .code-display .code-text {
+        font-size: 1rem;
+      }
+    }
+  }
+}

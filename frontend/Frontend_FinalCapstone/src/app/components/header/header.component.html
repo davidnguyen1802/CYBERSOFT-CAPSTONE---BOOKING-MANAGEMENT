@@ -22,41 +22,58 @@
                     <li class="nav-item">
                         <a class="nav-link" 
                           [ngClass]="{ 'active': activeNavItem === 1 }"
-                          (click)="setActiveNavItem(1, '/bookings')"
+                          (click)="setActiveNavItem(1, '/my-bookings')"
                           style="cursor: pointer;">
                             <i class="fas fa-calendar-check icon"></i>
-                            Bookings
+                            My Bookings
                         </a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" 
                             [ngClass]="{ 'active': activeNavItem === 2 }"
-                            (click)="setActiveNavItem(2, '/orders')"
+                            (click)="setActiveNavItem(2, '/my-bookings')"
                             style="cursor: pointer;">
                             <i class="fas fa-heart icon"></i>
                             Wishlist
                         </a>
                     </li>
                     <li class="nav-item">
-                        <!-- When user is logged in: Show avatar and username -->
-                        <ng-container *ngIf="isLoggedIn && userResponse">
+                        <!-- Loading state: Show spinner while checking authentication -->
+                        <ng-container *ngIf="isLoadingAuth">
+                          <a class="nav-link" style="cursor: wait;">
+                            <i class="fas fa-spinner fa-spin"></i> 
+                          </a>
+                        </ng-container>
+                        
+                        <!-- When user is logged in: Show profile link (lazy load username) -->
+                        <ng-container *ngIf="!isLoadingAuth && isLoggedIn">
                           <a class="nav-link user-profile-link" 
                              [ngClass]="{ 'active': activeNavItem === 3 }"
                              (click)="navigateToProfile()"
                              style="cursor: pointer;">
-                            <img 
-                              [src]="avatarUrl" 
-                              (error)="onAvatarError()"
-                              alt="User Avatar"
-                              class="user-avatar"
-                              onerror="this.src='https://via.placeholder.com/40?text=User'"
-                            />
-                            <span class="username-text">{{ userResponse.username }}</span>
+                            <!-- Show avatar if loaded, else show default icon -->
+                            <ng-container *ngIf="userResponse && avatarUrl">
+                              <img 
+                                [src]="avatarUrl" 
+                                (error)="onAvatarError()"
+                                alt="User Avatar"
+                                class="user-avatar"
+                                onerror="this.src='https://via.placeholder.com/40?text=User'"
+                              />
+                            </ng-container>
+                            <ng-container *ngIf="!userResponse">
+                              <i class="fas fa-user-circle"></i>
+                            </ng-container>
+                            
+                            <!-- Show username if loaded, else show "Profile" -->
+                            <span class="username-text">
+                              {{ userResponse?.username || 'Profile' }}
+                            </span>
                           </a>
                         </ng-container>
                         
                         <!-- When user is NOT logged in: Show Login button -->
-                        <ng-container *ngIf="!isLoggedIn">
+                        <ng-container *ngIf="!isLoadingAuth && !isLoggedIn">
                           <a class="nav-link" 
                              (click)="setActiveNavItem(-1, '/login')"
                              style="cursor: pointer;">

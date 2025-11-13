@@ -5,6 +5,7 @@ import { UserService } from '../../services/user.service';
 import { TokenService } from '../../services/token.service';
 import { AuthStateService } from '../../services/auth-state.service';
 import { CartService } from '../../services/cart.service';
+import { SimpleModalService } from '../../services/simple-modal.service';
 import { RegisterDTO } from '../../dtos/user/register.dto';
 @Component({
   selector: 'app-register',
@@ -41,7 +42,8 @@ export class RegisterComponent {
     private userService: UserService,
     private tokenService: TokenService,
     private authStateService: AuthStateService,
-    private cartService: CartService
+    private cartService: CartService,
+    private modalService: SimpleModalService
   ) {
     // Step 1 initialization
     this.email = '';
@@ -77,19 +79,19 @@ export class RegisterComponent {
     // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(this.email)) {
-      alert('Vui lòng nhập email hợp lệ');
+      this.modalService.showError('Vui lòng nhập email hợp lệ');
       return false;
     }
     
     // Validate password length (min 6 to match backend)
     if (this.password.length < 6) {
-      alert('Mật khẩu phải có ít nhất 6 ký tự');
+      this.modalService.showError('Mật khẩu phải có ít nhất 6 ký tự');
       return false;
     }
     
     // Validate passwords match
     if (this.password !== this.retypePassword) {
-      alert('Mật khẩu không khớp');
+      this.modalService.showError('Mật khẩu không khớp');
       return false;
     }
     
@@ -99,33 +101,33 @@ export class RegisterComponent {
   validateStep2(): boolean {
     // Validate fullName (2-100 chars)
     if (!this.fullName || this.fullName.trim().length < 2) {
-      alert('Họ và tên phải có ít nhất 2 ký tự');
+      this.modalService.showError('Họ và tên phải có ít nhất 2 ký tự');
       return false;
     }
     if (this.fullName.trim().length > 100) {
-      alert('Họ và tên không được vượt quá 100 ký tự');
+      this.modalService.showError('Họ và tên không được vượt quá 100 ký tự');
       return false;
     }
     
     // Validate username (3-50 chars, pattern: letters, numbers, dots, underscores, hyphens)
     if (!this.username || this.username.trim().length < 3) {
-      alert('Username phải có ít nhất 3 ký tự');
+      this.modalService.showError('Username phải có ít nhất 3 ký tự');
       return false;
     }
     if (this.username.trim().length > 50) {
-      alert('Username không được vượt quá 50 ký tự');
+      this.modalService.showError('Username không được vượt quá 50 ký tự');
       return false;
     }
     const usernamePattern = /^[a-zA-Z0-9._-]+$/;
     if (!usernamePattern.test(this.username)) {
-      alert('Username chỉ được chứa chữ cái, số, dấu chấm (.), gạch dưới (_) và gạch ngang (-)');
+      this.modalService.showError('Username chỉ được chứa chữ cái, số, dấu chấm (.), gạch dưới (_) và gạch ngang (-)');
       return false;
     }
     
     // Validate phone - exactly 10 digits
     const phoneRegex = /^\d{10}$/;
     if (!this.phoneNumber || !phoneRegex.test(this.phoneNumber)) {
-      alert('Số điện thoại phải có đúng 10 chữ số');
+      this.modalService.showError('Số điện thoại phải có đúng 10 chữ số');
       return false;
     }
     
@@ -138,13 +140,13 @@ export class RegisterComponent {
       age--;
     }
     if (age < 18) {
-      alert('Bạn chưa đủ 18 tuổi');
+      this.modalService.showError('Bạn chưa đủ 18 tuổi');
       return false;
     }
     
     // Validate acceptance
     if (!this.isAccepted) {
-      alert('Vui lòng đồng ý với điều khoản và điều kiện');
+      this.modalService.showError('Vui lòng đồng ý với điều khoản và điều kiện');
       return false;
     }
     
@@ -218,57 +220,91 @@ export class RegisterComponent {
     
     this.userService.register(formData).subscribe({
       next: (response: any) => {
-        console.log('✅ Registration successful:', response);
+        console.log('========================================');
+        console.log('FULL REGISTRATION RESPONSE:');
+        console.log(JSON.stringify(response, null, 2));
+        console.log('========================================');
         
-        // Check if response and response.data exist (same as login)
+        // Check if response and response.data exist
         if (!response || !response.data) {
           console.error('❌ Invalid response structure:', response);
-          alert('Invalid response from server');
+          console.error('response is null?', response === null);
+          console.error('response is undefined?', response === undefined);
+          console.error('response.data is null?', response?.data === null);
+          console.error('response.data is undefined?', response?.data === undefined);
+          this.modalService.showError('Phản hồi không hợp lệ từ server');
           return;
         }
         
-        const authData = response.data;
-        const token = authData.token;
-        console.log('🔑 Token received:', token);
-        console.log('👤 User data:', authData);
+        // ⚠️ CRITICAL: Backend returns JWT string directly in response.data
+        // Format: { status: "OK", message: "...", data: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." }
+        // NOT: { status: "OK", message: "...", data: { token: "..." } }
+        const token = response.data;
         
-        // Save access token to localStorage
-        // Refresh token is automatically stored in HttpOnly cookie by backend
-        console.log('=== SAVING TOKEN ===');
+        console.log('========================================');
+        console.log('TOKEN EXTRACTION:');
+        console.log('Token value:', token);
+        console.log('Token type:', typeof token);
+        console.log('Token is null?', token === null);
+        console.log('Token is undefined?', token === undefined);
+        console.log('Token is empty string?', token === '');
+        console.log('Token length:', token ? token.length : 0);
+        console.log('========================================');
+        
+        if (!token || token === null || token === undefined || token === '') {
+          console.error('❌ Token is invalid!');
+          this.modalService.showError('Đăng ký thành công nhưng không nhận được token. Vui lòng liên hệ admin.');
+          return;
+        }
+        
+        // Save access token to localStorage FIRST
+        console.log('========================================');
+        console.log('SAVING TOKEN TO LOCALSTORAGE:');
         console.log('Calling tokenService.setToken()...');
         this.tokenService.setToken(token);
         
         // Verify token was saved
         const savedToken = localStorage.getItem('access_token');
-        console.log('=== TOKEN VERIFICATION ===');
-        console.log('Token saved to localStorage?', savedToken ? 'YES' : 'NO');
-        console.log('Saved token:', savedToken);
+        console.log('Token saved to localStorage?', savedToken ? 'YES ✅' : 'NO ❌');
+        console.log('Saved token value:', savedToken);
+        console.log('Saved token matches original?', savedToken === token);
+        console.log('========================================');
         
-        // Notify that user has logged in
-        console.log('� Notifying login state change');
-        this.authStateService.notifyLogin();
+        // NOTE: Device ID is auto-generated by DeviceService.getDeviceId() when needed
+        // DeviceIdInterceptor will trigger auto-generation on first auth request
+        // No need to manually generate here
         
-        // Refresh cart (cart service will use token to identify user)
-        console.log('🛒 Refreshing cart for registered user');
-        this.cartService.refreshCart();
+        // CRITICAL: Notify auth ready BEFORE triggering any operations
+        // This allows header/other components to decode JWT and populate cache
+        console.log('🔐 Notifying auth ready state...');
+        this.authStateService.notifyLogin(); // This sets authReady = true
         
-        // Navigate based on role
-        const roles = authData.roles || [];
-        const isAdmin = roles.includes('ROLE_ADMIN');
-        
-        console.log('👤 User roles:', roles);
-        console.log('👤 Is Admin:', isAdmin);
-        
-        // Show welcome message
-        alert(`Đăng ký thành công! Chào mừng ${authData.username} đến với hệ thống.`);
-        
-        if (isAdmin) {
-          console.log('➡️ Navigating to /admin');
-          this.router.navigate(['/admin']);
-        } else {
-          console.log('➡️ Navigating to home page');
-          this.router.navigate(['/']);
-        }
+        // Small delay to ensure all subscribers receive auth ready signal
+        setTimeout(() => {
+          console.log('🛒 Refreshing cart for registered user');
+          this.cartService.refreshCart();
+          
+          // Parse JWT token to get user info
+          const authData = this.tokenService.getUserInfo();
+          const role = authData?.role || '';
+          const username = authData?.username || 'User';
+          const isAdmin = role === 'ROLE_ADMIN';
+          
+          console.log('👤 User role:', role);
+          console.log('👤 Username:', username);
+          console.log('👤 Is Admin:', isAdmin);
+          
+          // Show welcome message
+          this.modalService.showSuccess(`Đăng ký thành công! Chào mừng ${username} đến với hệ thống.`);
+          
+          if (isAdmin) {
+            console.log('➡️ Navigating to /admin');
+            this.router.navigate(['/admin']);
+          } else {
+            console.log('➡️ Navigating to home page');
+            this.router.navigate(['/']);
+          }
+        }, 100); // 100ms delay to ensure auth ready propagates
       },
       complete: () => {
         console.log('✅ Registration process complete');
@@ -281,8 +317,8 @@ export class RegisterComponent {
           message: error?.error?.message,
           fullError: error?.error
         });
-        const errorMessage = error?.error?.message || 'Registration failed. Please try again.';
-        alert(errorMessage);
+        const errorMessage = error?.error?.message || 'Đăng ký thất bại. Vui lòng thử lại.';
+        this.modalService.showError(errorMessage);
       }
     })   
   }

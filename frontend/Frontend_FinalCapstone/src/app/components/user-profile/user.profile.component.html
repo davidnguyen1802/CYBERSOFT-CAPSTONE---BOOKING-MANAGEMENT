@@ -47,6 +47,36 @@
             <i class="fas fa-star"></i>
             <span>Your Reviews</span>
           </a>
+          
+          <!-- HOST-ONLY MENU ITEMS -->
+          <div class="sidebar-divider" *ngIf="isHost()"></div>
+          <div class="sidebar-section-title" *ngIf="isHost()">
+            <i class="fas fa-home"></i> Host Management
+          </div>
+          <a 
+            class="sidebar-item"
+            *ngIf="isHost()"
+            (click)="navigateToHostDashboard()">
+            <i class="fas fa-tachometer-alt"></i>
+            <span>Dashboard</span>
+          </a>
+          <a 
+            class="sidebar-item"
+            *ngIf="isHost()"
+            [class.active]="activeSection === 'manage-properties'"
+            (click)="setActiveSection('manage-properties')">
+            <i class="fas fa-building"></i>
+            <span>Quản lý chỗ ở</span>
+          </a>
+          <a 
+            class="sidebar-item"
+            *ngIf="isHost()"
+            (click)="navigateToAddProperty()">
+            <i class="fas fa-plus-circle"></i>
+            <span>Thêm chỗ ở</span>
+          </a>
+          <!-- END HOST-ONLY MENU ITEMS -->
+          
           <a 
             class="sidebar-item logout-item"
             (click)="logout()">
@@ -403,51 +433,656 @@
             <app-property-card [property]="property"></app-property-card>
           </div>
         </div>
+
+        <!-- Pagination -->
+        <app-pagination
+          *ngIf="!isLoadingWishlist && wishlistTotalPages > 1"
+          [currentPage]="wishlistCurrentPage"
+          [totalPages]="wishlistTotalPages"
+          [totalElements]="wishlistTotalElements"
+          [pageSize]="wishlistPageSize"
+          [isFirst]="wishlistCurrentPage === 0"
+          [isLast]="wishlistCurrentPage === wishlistTotalPages - 1"
+          (pageChange)="onWishlistPageChange($event)">
+        </app-pagination>
       </div>
 
       <!-- ==================== PROMOTIONS SECTION ==================== -->
       <div *ngIf="activeSection === 'promotions'">
-        <div class="card">
+        <div class="card mb-4">
           <div class="card-header">
             <h4><i class="fas fa-tags"></i> Your Promotions</h4>
           </div>
-          <div class="card-body">
-            <div class="alert alert-info">
-              <i class="fas fa-info-circle"></i> <strong>Coming Soon!</strong> Your promotions and discount codes will be displayed here.
-            </div>
-            <p class="text-muted">Manage your promotions, discounts, and special offers.</p>
+        </div>
+
+        <!-- Loading State -->
+        <div *ngIf="isLoadingPromotions" class="text-center py-5">
+          <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Đang tải...</span>
           </div>
+          <p class="mt-3 text-muted">Đang tải mã giảm giá...</p>
+        </div>
+
+        <!-- Error State -->
+        <div *ngIf="promotionsError && !isLoadingPromotions" class="alert alert-danger" role="alert">
+          <i class="fas fa-exclamation-triangle me-2"></i>
+          {{ promotionsError }}
+        </div>
+
+        <!-- Content -->
+        <div *ngIf="!isLoadingPromotions && !promotionsError">
+          
+          <!-- Active Promotions -->
+          <div class="promotion-section mb-4" *ngIf="activePromotions.length > 0">
+            <h5 class="mb-3">
+              <i class="fas fa-star text-warning me-2"></i>
+              Mã Khả Dụng ({{ activePromotions.length }})
+            </h5>
+            <div class="row g-3">
+              <div class="col-md-6 col-lg-4" *ngFor="let promo of activePromotions">
+                <div class="card promotion-card active-card h-100">
+                  <div class="card-badge badge-active">Khả dụng</div>
+                  <div class="card-badge badge-expiring" *ngIf="promo.expiresDate && isExpiringSoon(promo.expiresDate)" style="top: 40px;">
+                    Sắp hết hạn!
+                  </div>
+                  
+                  <div class="card-body">
+                    <h5 class="card-title">
+                      <i class="fas fa-gift text-primary me-2"></i>
+                      {{ promo.promotionName }}
+                    </h5>
+                    
+                    <div class="promotion-code-box mb-3 p-2 bg-light border rounded">
+                      <small class="text-muted d-block mb-1">Mã giảm giá:</small>
+                      <div class="d-flex justify-content-between align-items-center">
+                        <code class="fs-5 fw-bold text-primary">{{ promo.promotionCode }}</code>
+                        <button 
+                          class="btn btn-sm btn-outline-primary" 
+                          (click)="copyPromotionCode(promo.promotionCode)"
+                          title="Sao chép mã">
+                          <i class="fas fa-copy"></i>
+                        </button>
+                      </div>
+                    </div>
+
+                    <div class="promotion-dates small text-muted">
+                      <div class="mb-1">
+                        <i class="fas fa-calendar-plus me-1"></i>
+                        Được cấp: {{ formatDate(promo.assignedDate) }}
+                      </div>
+                      <div *ngIf="promo.expiresDate">
+                        <i class="fas fa-calendar-times me-1"></i>
+                        Hết hạn: {{ formatDate(promo.expiresDate) }}
+                      </div>
+                    </div>
+                  </div>
+                  <div class="card-footer bg-transparent">
+                    <button class="btn btn-primary btn-sm w-100">
+                      <i class="fas fa-shopping-cart me-1"></i>
+                      Dùng Ngay
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Used Promotions -->
+          <div class="promotion-section mb-4" *ngIf="usedPromotions.length > 0">
+            <h5 class="mb-3">
+              <i class="fas fa-check-circle text-success me-2"></i>
+              Đã Sử Dụng ({{ usedPromotions.length }})
+            </h5>
+            <div class="row g-3">
+              <div class="col-md-6 col-lg-4" *ngFor="let promo of usedPromotions">
+                <div class="card promotion-card used-card h-100">
+                  <div class="card-badge badge-used">Đã dùng</div>
+                  
+                  <div class="card-body">
+                    <h5 class="card-title">
+                      <i class="fas fa-check text-success me-2"></i>
+                      {{ promo.promotionName }}
+                    </h5>
+                    
+                    <div class="promotion-code-box mb-3 p-2 bg-light border rounded">
+                      <small class="text-muted d-block mb-1">Mã:</small>
+                      <code class="fs-6 text-muted">{{ promo.promotionCode }}</code>
+                    </div>
+
+                    <!-- Status Info -->
+                    <div class="usage-details bg-light p-2 rounded">
+                      <div class="small">
+                        <div *ngIf="promo.promotionUsages && promo.promotionUsages.length > 0">
+                          <i class="fas fa-calendar-check me-1 text-success"></i>
+                          Đã dùng: {{ formatDate(promo.promotionUsages[0].usedDate) }}
+                        </div>
+                        <div *ngIf="promo.promotionUsages && promo.promotionUsages.length > 0">
+                          <i class="fas fa-receipt me-1 text-info"></i>
+                          Booking #{{ promo.promotionUsages[0].idBooking }}
+                        </div>
+                        <div *ngIf="promo.promotionUsages && promo.promotionUsages.length > 0">
+                          <i class="fas fa-tag me-1 text-success"></i>
+                          Giảm: {{ formatCurrency(promo.promotionUsages[0].discountAmount) }}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Expired Promotions -->
+          <div class="promotion-section mb-4" *ngIf="expiredPromotions.length > 0">
+            <h5 class="mb-3">
+              <i class="fas fa-clock text-secondary me-2"></i>
+              Đã Hết Hạn ({{ expiredPromotions.length }})
+            </h5>
+            <div class="row g-3">
+              <div class="col-md-6 col-lg-4" *ngFor="let promo of expiredPromotions">
+                <div class="card promotion-card expired-card h-100">
+                  <div class="card-badge badge-expired">Hết hạn</div>
+                  
+                  <div class="card-body">
+                    <h5 class="card-title text-muted">
+                      <i class="fas fa-times me-2"></i>
+                      {{ promo.promotionName }}
+                    </h5>
+                    
+                    <div class="promotion-code-box mb-3 p-2 bg-light border rounded">
+                      <small class="text-muted d-block mb-1">Mã:</small>
+                      <code class="fs-6 text-muted">{{ promo.promotionCode }}</code>
+                    </div>
+
+                    <div class="promotion-dates small text-muted" *ngIf="promo.expiresDate">
+                      <div>
+                        <i class="fas fa-calendar-times me-1"></i>
+                        Hết hạn: {{ formatDate(promo.expiresDate) }}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Empty State -->
+          <div *ngIf="promotions.length === 0" class="card">
+            <div class="card-body text-center py-5">
+              <i class="fas fa-ticket-alt fa-5x text-muted mb-3 opacity-25"></i>
+              <h4>Chưa Có Mã Giảm Giá</h4>
+              <p class="text-muted">Bạn chưa có mã giảm giá nào. Hãy tham gia các chương trình khuyến mãi để nhận mã!</p>
+            </div>
+          </div>
+
+          <!-- Pagination -->
+          <app-pagination
+            *ngIf="!isLoadingPromotions && promotionsTotalPages > 1"
+            [currentPage]="promotionsCurrentPage"
+            [totalPages]="promotionsTotalPages"
+            [totalElements]="promotionsTotalElements"
+            [pageSize]="promotionsPageSize"
+            [isFirst]="promotionsCurrentPage === 0"
+            [isLast]="promotionsCurrentPage === promotionsTotalPages - 1"
+            (pageChange)="onPromotionsPageChange($event)">
+          </app-pagination>
+
         </div>
       </div>
 
       <!-- ==================== BOOKING SECTION ==================== -->
       <div *ngIf="activeSection === 'booking'">
-        <div class="card">
+        <div class="card mb-4">
           <div class="card-header">
             <h4><i class="fas fa-calendar-check"></i> Your Bookings</h4>
           </div>
-          <div class="card-body">
-            <div class="alert alert-info">
-              <i class="fas fa-info-circle"></i> <strong>Coming Soon!</strong> Your booking history and upcoming reservations will be displayed here.
-            </div>
-            <p class="text-muted">View and manage your property bookings, check-in dates, and reservation details.</p>
+        </div>
+
+        <!-- Loading State -->
+        <div *ngIf="isLoadingBookings" class="text-center py-5">
+          <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Đang tải...</span>
           </div>
+          <p class="mt-3 text-muted">Đang tải danh sách đặt phòng...</p>
+        </div>
+
+        <!-- Error State -->
+        <div *ngIf="bookingsError && !isLoadingBookings" class="alert alert-danger" role="alert">
+          <i class="fas fa-exclamation-triangle me-2"></i>
+          {{ bookingsError }}
+        </div>
+
+        <!-- Content -->
+        <div *ngIf="!isLoadingBookings && !bookingsError">
+          
+          <!-- Upcoming Bookings -->
+          <!-- Upcoming Bookings -->
+          <div class="booking-section mb-4" *ngIf="upcomingBookings.length > 0">
+            <h5 class="mb-3">
+              <i class="fas fa-calendar-alt text-primary me-2"></i>
+              Đặt Phòng Sắp Tới ({{ upcomingBookings.length }})
+            </h5>
+            <div class="booking-list">
+              <app-booking-card
+                *ngFor="let booking of upcomingBookings"
+                [booking]="booking"
+                [onViewDetail]="navigateToProperty.bind(this, booking.propertyId)"
+                [onCancel]="canCancel(booking) ? cancelBooking.bind(this) : undefined"
+                [onDelete]="canDelete(booking) ? deleteBooking.bind(this) : undefined"
+                class="mb-3">
+              </app-booking-card>
+            </div>
+          </div>
+
+          <!-- Past Bookings -->
+          <div class="booking-section mb-4" *ngIf="pastBookings.length > 0">
+            <h5 class="mb-3">
+              <i class="fas fa-history text-secondary me-2"></i>
+              Lịch Sử Đặt Phòng ({{ pastBookings.length }})
+            </h5>
+            <div class="booking-list">
+              <app-booking-card
+                *ngFor="let booking of pastBookings"
+                [booking]="booking"
+                [onViewDetail]="navigateToProperty.bind(this, booking.propertyId)"
+                [onCancel]="canCancel(booking) ? cancelBooking.bind(this) : undefined"
+                [onDelete]="canDelete(booking) ? deleteBooking.bind(this) : undefined"
+                class="mb-3">
+              </app-booking-card>
+            </div>
+          </div>
+
+          <!-- Empty State -->
+          <div *ngIf="bookings.length === 0" class="card">
+            <div class="card-body text-center py-5">
+              <i class="fas fa-calendar-times fa-5x text-muted mb-3 opacity-25"></i>
+              <h4>Chưa Có Đặt Phòng</h4>
+              <p class="text-muted">Bạn chưa có đặt phòng nào. Hãy khám phá và đặt chỗ nghỉ yêu thích!</p>
+              <a routerLink="/" class="btn btn-primary mt-3">
+                <i class="fas fa-search me-2"></i>
+                Tìm Chỗ Nghỉ
+              </a>
+            </div>
+          </div>
+
+          <!-- Pagination -->
+          <app-pagination
+            *ngIf="!isLoadingBookings && bookingsTotalPages > 1"
+            [currentPage]="bookingsCurrentPage"
+            [totalPages]="bookingsTotalPages"
+            [totalElements]="bookingsTotalElements"
+            [pageSize]="bookingsPageSize"
+            [isFirst]="bookingsCurrentPage === 0"
+            [isLast]="bookingsCurrentPage === bookingsTotalPages - 1"
+            (pageChange)="onBookingsPageChange($event)">
+          </app-pagination>
+
         </div>
       </div>
 
       <!-- ==================== REVIEWS SECTION ==================== -->
       <div *ngIf="activeSection === 'reviews'">
-        <div class="card">
+        <div class="card mb-4">
           <div class="card-header">
             <h4><i class="fas fa-star"></i> Your Reviews</h4>
           </div>
-          <div class="card-body">
-            <div class="alert alert-info">
-              <i class="fas fa-info-circle"></i> <strong>Coming Soon!</strong> Your reviews and ratings will be displayed here.
+        </div>
+
+        <!-- Loading State -->
+        <div *ngIf="isLoadingReviews" class="text-center py-5">
+          <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Đang tải...</span>
+          </div>
+          <p class="mt-3 text-muted">Đang tải danh sách đánh giá...</p>
+        </div>
+
+        <!-- Error State -->
+        <div *ngIf="reviewsError && !isLoadingReviews" class="alert alert-danger" role="alert">
+          <i class="fas fa-exclamation-triangle me-2"></i>
+          {{ reviewsError }}
+        </div>
+
+        <!-- Content -->
+        <div *ngIf="!isLoadingReviews && !reviewsError">
+          
+          <!-- Reviews List -->
+          <div class="review-section" *ngIf="reviews.length > 0">
+            <div class="review-card mb-3" *ngFor="let review of reviews">
+              <!-- View Mode -->
+              <div class="card" *ngIf="editingReviewId !== review.reviewId">
+                <div class="card-body">
+                  <div class="d-flex justify-content-between align-items-start mb-3">
+                    <div>
+                      <h5 class="card-title mb-2">
+                        <a 
+                          (click)="navigateToProperty(review.propertyId)" 
+                          style="cursor: pointer; color: #667eea; text-decoration: none;"
+                          class="property-link">
+                          <i class="fas fa-home me-2"></i>
+                          {{ review.propertyName }}
+                        </a>
+                      </h5>
+                      <div class="review-rating mb-2">
+                        <span *ngFor="let star of getStarsArray(review.rating)">
+                          <i class="fas fa-star" 
+                             [class.text-warning]="star <= review.rating"
+                             [class.text-muted]="star > review.rating"></i>
+                        </span>
+                        <span class="ms-2 text-muted">({{ review.rating }}/5)</span>
+                      </div>
+                    </div>
+                    <div class="review-actions">
+                      <button 
+                        class="btn btn-sm btn-outline-primary me-2"
+                        (click)="startEditReview(review)"
+                        title="Chỉnh sửa đánh giá">
+                        <i class="fas fa-edit"></i>
+                      </button>
+                      <button 
+                        class="btn btn-sm btn-outline-danger"
+                        (click)="deleteReview(review.reviewId)"
+                        title="Xóa đánh giá">
+                        <i class="fas fa-trash"></i>
+                      </button>
+                    </div>
+                  </div>
+
+                  <p class="review-comment">{{ review.comment }}</p>
+
+                  <div class="review-dates small text-muted">
+                    <div>
+                      <i class="fas fa-calendar me-1"></i>
+                      Ngày đánh giá: {{ formatDate(review.reviewDate) }}
+                    </div>
+                    <div *ngIf="shouldShowUpdatedDate(review)">
+                      <i class="fas fa-edit me-1"></i>
+                      Đã chỉnh sửa: {{ formatDate(review.updatedDate) }}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Edit Mode -->
+              <div class="card border-primary" *ngIf="editingReviewId === review.reviewId && editingReviewData">
+                <div class="card-body">
+                  <div class="mb-3">
+                    <h5 class="card-title">
+                      <i class="fas fa-home me-2"></i>
+                      {{ review.propertyName }}
+                    </h5>
+                  </div>
+
+                  <!-- Rating Edit -->
+                  <div class="mb-3">
+                    <label class="form-label">Đánh giá:</label>
+                    <div class="rating-edit">
+                      <span *ngFor="let star of getStarsArray(5)" 
+                            (click)="setRating(star)"
+                            style="cursor: pointer; font-size: 1.5rem;">
+                        <i class="fas fa-star" 
+                           [class.text-warning]="star <= editingReviewData.rating"
+                           [class.text-muted]="star > editingReviewData.rating"></i>
+                      </span>
+                      <span class="ms-2">({{ editingReviewData.rating }}/5)</span>
+                    </div>
+                  </div>
+
+                  <!-- Comment Edit -->
+                  <div class="mb-3">
+                    <label class="form-label">Nhận xét:</label>
+                    <textarea 
+                      class="form-control" 
+                      rows="4"
+                      [(ngModel)]="editingReviewData.comment"
+                      placeholder="Nhập nhận xét của bạn..."></textarea>
+                  </div>
+
+                  <!-- Action Buttons -->
+                  <div class="d-flex gap-2">
+                    <button 
+                      class="btn btn-primary"
+                      (click)="saveEditReview(review)">
+                      <i class="fas fa-save me-1"></i>
+                      Lưu
+                    </button>
+                    <button 
+                      class="btn btn-secondary"
+                      (click)="cancelEditReview()">
+                      <i class="fas fa-times me-1"></i>
+                      Hủy
+                    </button>
+                  </div>
+                </div>
+              </div>
             </div>
-            <p class="text-muted">View and manage reviews you've written for properties you've stayed at.</p>
+          </div>
+
+          <!-- Empty State -->
+          <div *ngIf="reviews.length === 0" class="card">
+            <div class="card-body text-center py-5">
+              <i class="fas fa-star fa-5x text-muted mb-3 opacity-25"></i>
+              <h4>Chưa Có Đánh Giá</h4>
+              <p class="text-muted">Bạn chưa có đánh giá nào. Hãy đặt phòng và chia sẻ trải nghiệm của bạn!</p>
+              <a routerLink="/" class="btn btn-primary mt-3">
+                <i class="fas fa-search me-2"></i>
+                Tìm Chỗ Nghỉ
+              </a>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- ==================== HOST PROPERTIES MANAGEMENT SECTION ==================== -->
+      <div *ngIf="activeSection === 'manage-properties'">
+        <div class="card mb-4">
+          <div class="card-header d-flex justify-content-between align-items-center">
+            <h4><i class="fas fa-building"></i> Quản lý chỗ ở của bạn</h4>
           </div>
         </div>
+
+        <!-- Search and Sort Controls -->
+        <div class="card mb-3" *ngIf="!isLoadingHostProperties && hostProperties.length > 0">
+          <div class="card-body">
+            <div class="row g-3">
+              <!-- Search Box -->
+              <div class="col-md-8">
+                <div class="input-group">
+                  <span class="input-group-text">
+                    <i class="fas fa-search"></i>
+                  </span>
+                  <input 
+                    type="text" 
+                    class="form-control" 
+                    placeholder="Tìm kiếm theo tên chỗ ở..."
+                    [(ngModel)]="propertySearchQuery"
+                    (keyup.enter)="filterHostProperties()">
+                  <button 
+                    class="btn btn-primary" 
+                    type="button"
+                    (click)="filterHostProperties()">
+                    Tìm kiếm
+                  </button>
+                  <button 
+                    *ngIf="propertySearchQuery" 
+                    class="btn btn-outline-secondary" 
+                    type="button"
+                    (click)="propertySearchQuery = ''; filterHostProperties()">
+                    <i class="fas fa-times"></i>
+                  </button>
+                </div>
+              </div>
+              
+              <!-- Sort Controls -->
+              <div class="col-md-4">
+                <button 
+                  class="btn btn-outline-primary w-100" 
+                  type="button"
+                  (click)="togglePropertySort()"
+                  [title]="propertySortDirection === 'DESC' ? 'Mới nhất trước' : 'Cũ nhất trước'">
+                  <i class="fas fa-calendar-alt me-2"></i>
+                  <span>{{ propertySortDirection === 'DESC' ? 'Mới nhất' : 'Cũ nhất' }}</span>
+                  <i class="fas ms-2" [ngClass]="propertySortDirection === 'DESC' ? 'fa-sort-amount-down' : 'fa-sort-amount-up'"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Loading State -->
+        <div *ngIf="isLoadingHostProperties" class="text-center py-5">
+          <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Đang tải...</span>
+          </div>
+          <p class="mt-3 text-muted">Đang tải danh sách chỗ ở...</p>
+        </div>
+
+        <!-- Error State -->
+        <div *ngIf="hostPropertiesError && !isLoadingHostProperties" class="alert alert-danger" role="alert">
+          <i class="fas fa-exclamation-triangle me-2"></i>
+          {{ hostPropertiesError }}
+        </div>
+
+        <!-- Properties Grid -->
+        <div *ngIf="!isLoadingHostProperties && !hostPropertiesError && filteredHostProperties.length > 0">
+          <div class="row g-4">
+            <div class="col-lg-4 col-md-6" *ngFor="let property of filteredHostProperties">
+              <div class="card h-100 property-card">
+                <!-- Property Image -->
+                <div class="property-image-container" style="position: relative; height: 200px; overflow: hidden;">
+                  <img 
+                    [src]="getPropertyImage(property)" 
+                    [alt]="property.name"
+                    class="card-img-top"
+                    style="width: 100%; height: 100%; object-fit: cover;"
+                    onerror="this.src='/assets/img/placeholder.svg'">
+                  <div class="property-badge" style="position: absolute; top: 10px; right: 10px;">
+                    <span class="badge bg-primary">{{ getPropertyTypeText(property.propertyType) }}</span>
+                  </div>
+                </div>
+                
+                <div class="card-body">
+                  <!-- Property Name -->
+                  <h5 class="card-title text-truncate" [title]="property.name">
+                    <i class="fas fa-home me-2"></i>{{ property.name }}
+                  </h5>
+                  
+                  <!-- Property Info -->
+                  <div class="property-info small text-muted mb-2">
+                    <div class="mb-1">
+                      <i class="fas fa-map-marker-alt me-1"></i>
+                      {{ property.locationName }}, {{ property.cityName }}
+                    </div>
+                    <div class="mb-1">
+                      <i class="fas fa-door-open me-1"></i>
+                      {{ property.numberOfBedrooms }} phòng ngủ • {{ property.numberOfBathrooms }} phòng tắm
+                    </div>
+                    <div class="mb-1">
+                      <i class="fas fa-users me-1"></i>
+                      Tối đa {{ property.maxAdults }} người lớn
+                    </div>
+                  </div>
+                  
+                  <!-- Price and Rating -->
+                  <div class="d-flex justify-content-between align-items-center mb-2">
+                    <div class="price">
+                      <strong class="text-primary fs-5">{{ formatCurrency(property.pricePerNight) }}</strong>
+                      <small class="text-muted"> /đêm</small>
+                    </div>
+                    <div class="rating" *ngIf="property.rating">
+                      <i class="fas fa-star text-warning me-1"></i>
+                      <strong>{{ property.rating.toFixed(1) }}</strong>
+                    </div>
+                  </div>
+
+                  <!-- Created Date -->
+                  <div class="text-muted small mb-3">
+                    <i class="fas fa-calendar-plus me-1"></i>
+                    Tạo ngày {{ formatDate(property.createDate || property.createdAt) }}
+                  </div>
+                  
+                  <!-- Stats -->
+                  <div class="property-stats small mb-3 p-2 bg-light rounded">
+                    <div class="row text-center g-2">
+                      <div class="col-6">
+                        <div class="stat-item">
+                          <i class="fas fa-images text-primary me-1"></i>
+                          <span>{{ property.images.length || 0 }} ảnh</span>
+                        </div>
+                      </div>
+                      <div class="col-6">
+                        <div class="stat-item">
+                          <i class="fas fa-star text-warning me-1"></i>
+                          <span>{{ property.reviews.length || 0 }} đánh giá</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <!-- Action Buttons -->
+                  <div class="d-flex gap-2">
+                    <button 
+                      class="btn btn-outline-primary flex-grow-1"
+                      (click)="editHostProperty(property.id)"
+                      title="Chỉnh sửa chỗ ở">
+                      <i class="fas fa-edit me-1"></i>
+                      Sửa
+                    </button>
+                    <button 
+                      class="btn btn-outline-danger flex-grow-1"
+                      (click)="deleteHostProperty(property.id, property.name)"
+                      title="Xóa chỗ ở">
+                      <i class="fas fa-trash me-1"></i>
+                      Xóa
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Empty State -->
+        <div *ngIf="!isLoadingHostProperties && !hostPropertiesError && filteredHostProperties.length === 0 && !propertySearchQuery" class="card">
+          <div class="card-body text-center py-5">
+            <i class="fas fa-building fa-5x text-muted mb-3 opacity-25"></i>
+            <h4>Chưa Có Chỗ Ở</h4>
+            <p class="text-muted">Bạn chưa có chỗ ở nào. Hãy thêm chỗ ở đầu tiên của bạn!</p>
+            <button 
+              class="btn btn-primary mt-3"
+              (click)="navigateToAddProperty()">
+              <i class="fas fa-plus-circle me-2"></i>
+              Thêm Chỗ Ở
+            </button>
+          </div>
+        </div>
+
+        <!-- No Search Results -->
+        <div *ngIf="!isLoadingHostProperties && !hostPropertiesError && filteredHostProperties.length === 0 && propertySearchQuery" class="card">
+          <div class="card-body text-center py-5">
+            <i class="fas fa-search fa-5x text-muted mb-3 opacity-25"></i>
+            <h4>Không Tìm Thấy Kết Quả</h4>
+            <p class="text-muted">Không có chỗ ở nào phù hợp với từ khóa "{{ propertySearchQuery }}"</p>
+            <button 
+              class="btn btn-outline-primary mt-3"
+              (click)="propertySearchQuery = ''; filterHostProperties()">
+              <i class="fas fa-redo me-2"></i>
+              Xóa Tìm Kiếm
+            </button>
+          </div>
+        </div>
+
+        <!-- Pagination -->
+        <app-pagination
+          *ngIf="!isLoadingHostProperties && hostPropertiesTotalPages > 1"
+          [currentPage]="hostPropertiesCurrentPage"
+          [totalPages]="hostPropertiesTotalPages"
+          [totalElements]="hostPropertiesTotalElements"
+          [pageSize]="hostPropertiesPageSize"
+          [isFirst]="hostPropertiesCurrentPage === 0"
+          [isLast]="hostPropertiesCurrentPage === hostPropertiesTotalPages - 1"
+          (pageChange)="onHostPropertiesPageChange($event)">
+        </app-pagination>
       </div>
 
     </div>

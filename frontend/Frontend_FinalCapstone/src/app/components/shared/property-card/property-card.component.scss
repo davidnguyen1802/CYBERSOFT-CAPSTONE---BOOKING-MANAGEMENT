@@ -59,6 +59,7 @@
     align-items: center;
     gap: 4px;
     z-index: 2;
+    pointer-events: none; // Không block click event
 
     i {
       font-size: 0.8rem;

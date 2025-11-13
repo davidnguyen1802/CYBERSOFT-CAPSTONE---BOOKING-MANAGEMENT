@@ -5,7 +5,7 @@ export interface AuthData {
   tokenType: string;
   id: number;
   username: string;
-  roles: string[];
+  role: string; // Single role instead of array
 }
 
 export interface LoginResponse {

@@ -4,6 +4,7 @@ import { getBaseUrl } from '../../../utils/url.util';
 import { UserService } from '../../../services/user.service';
 import { TokenService } from '../../../services/token.service';
 import { AuthStateService } from '../../../services/auth-state.service';
+import { SimpleModalService } from '../../../services/simple-modal.service';
 
 @Component({
   selector: 'app-property-card',
@@ -18,43 +19,70 @@ export class PropertyCardComponent implements OnInit {
   isLoggedIn: boolean = false;
   userId: number = 0;
   isLoading: boolean = false;
+  
+  private loginSubscription?: any; // Store subscription for cleanup
 
   constructor(
     private userService: UserService,
     private tokenService: TokenService,
-    private authStateService: AuthStateService
+    private authStateService: AuthStateService,
+    private modalService: SimpleModalService
   ) {}
 
   ngOnInit(): void {
-    // Check if user is logged in
-    this.checkLoginStatus();
-    
-    // Subscribe to login state changes
-    this.authStateService.loginState$.subscribe(() => {
+    // Subscribe to login state changes (store subscription for cleanup)
+    // This will fire ONCE on subscribe if loginState$ is a BehaviorSubject
+    this.loginSubscription = this.authStateService.loginState$.subscribe(() => {
       this.checkLoginStatus();
     });
+    
+    // NOTE: Don't call checkLoginStatus() manually here - subscription will handle it
+  }
+  
+  ngOnDestroy(): void {
+    // CRITICAL: Unsubscribe to prevent memory leaks
+    if (this.loginSubscription) {
+      this.loginSubscription.unsubscribe();
+    }
   }
 
   checkLoginStatus(): void {
     const token = this.tokenService.getToken();
-    this.isLoggedIn = !!(token && !this.tokenService.isTokenExpired());
+    
+    // NOTE: We only check if token EXISTS, not if it's expired
+    // Backend will return 401 if token is invalid/expired
+    this.isLoggedIn = !!token;
+    console.log('🔐 PROPERTY-CARD: Checking login status for property ID:', this.property.id);
+    console.log('   Has token:', !!token);
+    console.log('   isLoggedIn:', this.isLoggedIn);
     
     if (this.isLoggedIn) {
+      // Decode JWT to get userId
+      console.log('🔍 Decoding JWT to get userId...');
+      const startTime = performance.now();
       this.userId = this.tokenService.getUserId();
-      // Check if this property is favorited
-      this.checkIfFavorite();
+      const decodeTime = performance.now() - startTime;
+      console.log(`✅ User ID decoded in ${decodeTime.toFixed(2)}ms:`, this.userId);
+      
+      // Only check favorite if we got a valid userId from cache
+      if (this.userId > 0) {
+        console.log('🔍 Checking if property is favorite...');
+        this.checkIfFavorite();
+      } else {
+        console.log('❌ Invalid user ID → Setting isFavorite = false');
+        this.isFavorite = false;
+      }
     } else {
+      console.log('❌ User not logged in → Setting isFavorite = false');
       this.isFavorite = false;
+      this.userId = 0;
     }
   }
 
   checkIfFavorite(): void {
     if (!this.isLoggedIn || !this.userId || !this.property?.id) return;
-    
-    const token = this.tokenService.getToken();
-    if (!token) return;
 
-    this.userService.checkFavorite(this.userId, this.property.id, token).subscribe({
+    this.userService.checkFavorite(this.userId, this.property.id).subscribe({
       next: (response: any) => {
         console.log(`❤️ Favorite check for property ${this.property.id}:`, response);
         // Assume API returns { data: true/false } or { data: { isFavorite: true/false } }
@@ -63,7 +91,13 @@ export class PropertyCardComponent implements OnInit {
         }
       },
       error: (error: any) => {
-        console.error(`❌ Error checking favorite for property ${this.property.id}:`, error);
+        // IMPORTANT: Favorite check is OPTIONAL - 401 just means not logged in
+        // Don't trigger auto-refresh or logout
+        if (error.status === 401) {
+          console.log(`ℹ️ Token invalid for favorite check - property ${this.property.id}`);
+        } else {
+          console.error(`❌ Error checking favorite for property ${this.property.id}:`, error);
+        }
         this.isFavorite = false;
       }
     });
@@ -76,8 +110,9 @@ export class PropertyCardComponent implements OnInit {
       if (imageUrl.startsWith('http')) {
         return imageUrl;
       }
-      // Nếu không, ghép với baseUrl
-      return `${this.baseUrl}${imageUrl}`;
+      // Nếu không, ghép với baseUrl - ensure leading slash
+      const cleanPath = imageUrl.startsWith('/') ? imageUrl : `/${imageUrl}`;
+      return `${this.baseUrl}${cleanPath}`;
     }
     return '/assets/img/placeholder.svg';
   }
@@ -86,26 +121,26 @@ export class PropertyCardComponent implements OnInit {
     event.stopPropagation();
     event.preventDefault();
     
-    // Check if user is logged in
+    // Check if user is logged in (anonymous mode)
     if (!this.isLoggedIn) {
-      alert('Vui lòng đăng nhập để sử dụng tính năng Wishlist!');
+      console.warn('⚠️ PropertyCard: Anonymous user trying to toggle favorite');
+      // Show login required modal
+      this.modalService.showLoginRequired();
       return;
     }
 
     if (this.isLoading) return; // Prevent multiple clicks
     
-    const token = this.tokenService.getToken();
-    if (!token || !this.userId) {
-      alert('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại!');
-      return;
-    }
+    // Note: Token expiration is handled by TokenInterceptor automatically
+    // If token is expired/invalid, interceptor will try to refresh or show session expired modal
+    const userId = this.userId;
 
     this.isLoading = true;
 
     if (this.isFavorite) {
       // Remove from favorites
       console.log(`💔 Removing property ${this.property.id} from favorites...`);
-      this.userService.removeFromFavorites(this.userId, this.property.id, token).subscribe({
+      this.userService.removeFromFavorites(userId, this.property.id).subscribe({
         next: (response: any) => {
           console.log('✅ Removed from favorites:', response);
           this.isFavorite = false;
@@ -123,7 +158,7 @@ export class PropertyCardComponent implements OnInit {
     } else {
       // Add to favorites
       console.log(`💖 Adding property ${this.property.id} to favorites...`);
-      this.userService.addToFavorites(this.userId, this.property.id, token).subscribe({
+      this.userService.addToFavorites(userId, this.property.id).subscribe({
         next: (response: any) => {
           console.log('✅ Added to favorites:', response);
           if (response && response.code === 200) {

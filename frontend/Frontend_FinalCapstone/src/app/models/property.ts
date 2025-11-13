@@ -56,6 +56,9 @@ export interface Property {
   nameUserFavorites: string[];
   available: boolean;
   guestFavorite: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+  createDate?: string; // New field from BE
 }
 
 export interface PropertyTypeLabel {

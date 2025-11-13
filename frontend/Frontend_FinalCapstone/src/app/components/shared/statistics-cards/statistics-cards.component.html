@@ -1,0 +1,64 @@
+<div class="statistics-container">
+  <!-- Statistics Header -->
+  <div class="stats-header">
+    <div class="header-content">
+      <h2>📊 Overview Statistics</h2>
+      <p class="header-subtitle">Real-time insights of your property performance</p>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  <div class="loading-stats" *ngIf="loading">
+    <div class="stat-card skeleton" *ngFor="let i of [1,2,3,4,5,6]">
+      <div class="skeleton-circle"></div>
+      <div class="skeleton-line"></div>
+      <div class="skeleton-line short"></div>
+    </div>
+  </div>
+
+  <!-- Statistics Cards (3 cards per row) -->
+  <div class="stats-grid" *ngIf="!loading && statistics">
+    <div 
+      *ngFor="let card of statCards"
+      class="stat-card"
+      [style.--card-color]="card.color">
+      
+      <div class="stat-icon-wrapper">
+        <div class="stat-icon">{{ card.icon }}</div>
+      </div>
+
+      <div class="stat-content">
+        <div class="stat-label">{{ card.label }}</div>
+        <div class="stat-value">{{ card.value }}</div>
+        
+        <div class="stat-trend" *ngIf="card.trend" [class.trend-up]="card.trendUp" [class.trend-down]="!card.trendUp">
+          <span class="trend-icon">{{ card.trendUp ? '↗' : '↘' }}</span>
+          <span class="trend-text">{{ card.trend }}</span>
+        </div>
+      </div>
+
+      <div class="stat-badge" [style.background]="card.color"></div>
+    </div>
+  </div>
+
+  <!-- Statistics Footer -->
+  <div class="stats-footer" *ngIf="!loading && statistics">
+    <div class="footer-info">
+      <span class="footer-icon">ℹ️</span>
+      <span class="footer-text">Statistics are updated in real-time based on your bookings activity</span>
+    </div>
+    <div class="footer-timestamp">
+      Last updated: {{ getCurrentTime() }}
+    </div>
+  </div>
+
+  <!-- Empty State -->
+  <div class="empty-stats" *ngIf="!loading && !statistics">
+    <div class="empty-icon">📊</div>
+    <p>No statistics available</p>
+  </div>
+</div>
+
+
+
+

@@ -10,6 +10,8 @@ import {
   BaseResponse, 
   PropertySearchRequest 
 } from '../models/property';
+import { PropertyRequestDTO } from '../dtos/property/property.request.dto';
+import { PropertyCompleteRequestDTO } from '../dtos/property/property-complete.request.dto';
 
 @Injectable({ providedIn: 'root' })
 export class PropertyService {
@@ -295,5 +297,120 @@ export class PropertyService {
     }
 
     return params;
+  }
+
+  /**
+   * Create a new property (OLD METHOD - still works)
+   * POST /property
+   */
+  createProperty(propertyRequest: PropertyRequestDTO): Observable<BaseResponse<any>> {
+    console.log('🔵 API Call: POST /property', propertyRequest);
+    return this.http.post<BaseResponse<any>>(`${this.baseUrl}/property`, propertyRequest);
+  }
+
+  /**
+   * Create complete property in one request (NEW METHOD - RECOMMENDED)
+   * POST /property/complete
+   * Includes: property info + images + amenities + facilities
+   */
+  createCompleteProperty(request: PropertyCompleteRequestDTO): Observable<BaseResponse<any>> {
+    console.log('🔵 API CALL: POST /property/complete');
+    console.log('📝 Property data:', request.property);
+    console.log('🖼️  Images count:', request.images?.length || 0);
+    console.log('📋 Image descriptions:', request.imageDescriptions);
+    console.log('✨ Amenities:', request.amenityIds);
+    console.log('🏢 Facilities:', request.facilityIds);
+
+    const formData = new FormData();
+    
+    // Add property data as JSON Blob
+    formData.append('property', new Blob(
+      [JSON.stringify(request.property)], 
+      { type: 'application/json' }
+    ));
+    console.log('✅ Added property JSON to FormData');
+    
+    // Add images (if provided)
+    if (request.images && request.images.length > 0) {
+      request.images.forEach((image, index) => {
+        formData.append('images', image);
+        console.log(`✅ Added image ${index + 1}: ${image.name} (${(image.size / 1024).toFixed(2)} KB)`);
+      });
+    }
+    
+    // Add image descriptions (if provided)
+    if (request.imageDescriptions && request.imageDescriptions.length > 0) {
+      formData.append('imageDescriptions', new Blob(
+        [JSON.stringify(request.imageDescriptions)],
+        { type: 'application/json' }
+      ));
+      console.log('✅ Added image descriptions to FormData');
+    }
+    
+    // Add amenity IDs (if provided)
+    if (request.amenityIds && request.amenityIds.length > 0) {
+      formData.append('amenityIds', new Blob(
+        [JSON.stringify(request.amenityIds)],
+        { type: 'application/json' }
+      ));
+      console.log('✅ Added amenity IDs to FormData');
+    }
+    
+    // Add facility IDs (if provided)
+    if (request.facilityIds && request.facilityIds.length > 0) {
+      formData.append('facilityIds', new Blob(
+        [JSON.stringify(request.facilityIds)],
+        { type: 'application/json' }
+      ));
+      console.log('✅ Added facility IDs to FormData');
+    }
+    
+    console.log('🚀 Sending FormData to API...');
+    return this.http.post<BaseResponse<any>>(`${this.baseUrl}/property/complete`, formData);
+  }
+
+    /**
+   * Get all properties by host ID (with pagination and sorting)
+   * GET /property/host/{hostId}
+   * @param hostId ID của host
+   * @param page Page number (default: 0)
+   * @param size Page size (default: 9)
+   * @param name Optional search query for property name
+   * @param sortBy Optional sort field (default: id)
+   * @param sortDirection Optional sort direction (default: DESC)
+   */
+  getPropertiesByHost(
+    hostId: number,
+    page: number = 0,
+    size: number = 9,
+    name?: string,
+    sortBy: string = 'id',
+    sortDirection: string = 'DESC'
+  ): Observable<BaseResponse<PageResponse<Property>>> {
+    let params = new HttpParams()
+      .set('page', page.toString())
+      .set('size', size.toString())
+      .set('sortBy', sortBy)
+      .set('sortDirection', sortDirection);
+    
+    if (name && name.trim()) {
+      params = params.set('name', name.trim());
+    }
+    
+    const fullUrl = `${this.baseUrl}/property/host/${hostId}`;
+    console.log(`🔵 API Call: GET ${fullUrl}`);
+    console.log(`   📋 Params:`, { page, size, sortBy, sortDirection, name: name || 'none' });
+    
+    return this.http.get<BaseResponse<PageResponse<Property>>>(fullUrl, { params });
+  }
+
+  /**
+   * Delete a property by ID
+   * DELETE /property/{id}
+   * @param propertyId ID của property cần xóa
+   */
+  deleteProperty(propertyId: number): Observable<BaseResponse<any>> {
+    console.log(`🔵 API Call: DELETE /property/${propertyId}`);
+    return this.http.delete<BaseResponse<any>>(`${this.baseUrl}/property/${propertyId}`);
   }
 }

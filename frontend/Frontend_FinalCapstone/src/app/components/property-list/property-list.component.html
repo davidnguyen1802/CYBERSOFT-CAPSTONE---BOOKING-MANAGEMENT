@@ -110,7 +110,9 @@
 
         <!-- Property Cards -->
         <div class="property-list-items" *ngIf="!loading && !errorMsg && properties.length > 0">
-          <article class="property-list-card" *ngFor="let property of properties; trackBy: trackByPropertyId">
+          <article class="property-list-card" 
+                   *ngFor="let property of properties; trackBy: trackByPropertyId"
+                   [routerLink]="['/properties', property.id]">
             <!-- Image Section -->
             <div class="property-image">
               <img [src]="getPropertyImage(property)" 
@@ -141,7 +143,7 @@
 
               <!-- Title -->
               <h3 class="property-title">
-                <a [routerLink]="['/products', property.id]">{{ property.name }}</a>
+                <a [routerLink]="['/properties', property.id]">{{ property.name }}</a>
               </h3>
 
               <!-- Property Details -->

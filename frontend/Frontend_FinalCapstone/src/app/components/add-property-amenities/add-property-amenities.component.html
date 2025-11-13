@@ -1,0 +1,104 @@
+<div class="amenities-container">
+  <!-- Header -->
+  <div class="header-section">
+    <button class="btn-back" (click)="goBack()">
+      <i class="bi bi-arrow-left"></i> Quay lại
+    </button>
+    <h2 class="page-title">Thêm tiện nghi cho property</h2>
+    <p class="page-subtitle">Chọn các tiện nghi mà property của bạn có</p>
+  </div>
+
+  <!-- Loading State -->
+  <div *ngIf="isLoading" class="loading-container">
+    <div class="spinner-border text-primary" role="status">
+      <span class="visually-hidden">Đang tải...</span>
+    </div>
+    <p class="loading-text">Đang tải danh sách tiện nghi...</p>
+  </div>
+
+  <!-- Amenities Grid -->
+  <div *ngIf="!isLoading && amenities.length > 0" class="amenities-grid">
+    <div 
+      *ngFor="let amenity of amenities" 
+      class="amenity-card"
+      [class.selected]="isSelected(amenity.id)"
+      (click)="toggleAmenity(amenity.id)">
+      
+      <!-- Icon -->
+      <div class="amenity-icon">
+        <img 
+          [src]="getIconUrl(amenity.iconUrl)" 
+          [alt]="amenity.amenityName"
+          onerror="this.src='assets/img/placeholder.svg'">
+      </div>
+      
+      <!-- Info -->
+      <div class="amenity-info">
+        <h4 class="amenity-name">{{ amenity.amenityName }}</h4>
+        <p class="amenity-description">{{ amenity.description }}</p>
+      </div>
+      
+      <!-- Check Icon -->
+      <div class="check-icon" *ngIf="isSelected(amenity.id)">
+        <i class="bi bi-check-circle-fill"></i>
+      </div>
+    </div>
+  </div>
+
+  <!-- Empty State -->
+  <div *ngIf="!isLoading && amenities.length === 0" class="empty-state">
+    <i class="bi bi-exclamation-circle"></i>
+    <p>Không có tiện nghi nào để chọn</p>
+  </div>
+
+  <!-- Selected Count -->
+  <div *ngIf="!isLoading && amenities.length > 0" class="selected-count">
+    <i class="bi bi-check-circle"></i>
+    <span>Đã chọn {{ selectedAmenityIds.size }} tiện nghi</span>
+  </div>
+
+  <!-- Action Buttons -->
+  <div class="action-buttons">
+    <button 
+      class="btn btn-secondary btn-skip" 
+      (click)="skip()"
+      [disabled]="isSubmitting">
+      Bỏ qua
+    </button>
+    <button 
+      class="btn btn-primary btn-submit" 
+      (click)="submitAmenities()"
+      [disabled]="!canSubmit()">
+      <span *ngIf="!isSubmitting">
+        Tiếp tục
+        <i class="bi bi-arrow-right ms-2"></i>
+      </span>
+      <span *ngIf="isSubmitting">
+        <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+        Đang lưu...
+      </span>
+    </button>
+  </div>
+</div>
+
+<!-- Modal -->
+<div class="modal fade" [class.show]="showModal" [style.display]="showModal ? 'block' : 'none'" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header" [class.bg-success]="modalType === 'success'" [class.bg-danger]="modalType === 'error'">
+        <h5 class="modal-title text-white">
+          <i class="bi" [class.bi-check-circle]="modalType === 'success'" [class.bi-x-circle]="modalType === 'error'"></i>
+          {{ modalTitle }}
+        </h5>
+        <button type="button" class="btn-close btn-close-white" (click)="closeModal()"></button>
+      </div>
+      <div class="modal-body">
+        <p>{{ modalMessage }}</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-primary" (click)="closeModal()">Đóng</button>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="modal-backdrop fade" [class.show]="showModal" *ngIf="showModal"></div>

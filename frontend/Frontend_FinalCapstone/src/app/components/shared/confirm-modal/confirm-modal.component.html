@@ -1,0 +1,58 @@
+<div class="modal-backdrop" *ngIf="isVisible" (click)="handleBackdropClick($event)">
+  <div class="modal-dialog" (click)="$event.stopPropagation()">
+    <div class="modal-content">
+      <!-- Header -->
+      <div class="modal-header">
+        <h3 class="modal-title">{{ title }}</h3>
+        <button class="close-button" (click)="handleCancel()">&times;</button>
+      </div>
+
+      <!-- Body -->
+      <div class="modal-body">
+        <p class="modal-message" *ngIf="message">{{ message }}</p>
+        
+        <!-- Warning Box -->
+        <div class="warning-box" *ngIf="warning || conflicts.length > 0">
+          <div class="warning-icon">⚠️</div>
+          <div class="warning-content">
+            <p class="warning-text" *ngIf="warning">{{ warning }}</p>
+            
+            <div class="conflicts-list" *ngIf="conflicts.length > 0">
+              <p class="conflicts-title">Conflicting bookings that will be automatically rejected:</p>
+              <ul>
+                <li *ngFor="let conflict of conflicts">
+                  <strong>Booking #{{ conflict.id }}</strong> - {{ conflict.guestName }}
+                  <br>
+                  <span class="dates">{{ formatDate(conflict.checkIn) }} → {{ formatDate(conflict.checkOut) }}</span>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <div class="modal-footer">
+        <button class="btn btn-secondary" (click)="handleCancel()">
+          {{ cancelText }}
+        </button>
+        <button class="btn" [ngClass]="confirmButtonClass" (click)="handleConfirm()">
+          {{ confirmText }}
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -72,6 +72,37 @@
                 </div>
               </div>
             </div>
+            
+            <!-- Photo Gallery Preview -->
+            <div class="photo-gallery-preview mt-5" *ngIf="property.images && property.images.length > 0">
+              <h4 class="mb-3">Hình ảnh</h4>
+              <div class="photo-grid">
+                <!-- First Image (Large) -->
+                <div class="photo-item photo-large" *ngIf="property.images.length >= 1">
+                  <img [src]="getPropertyImage(0)" 
+                       [alt]="property.name"
+                       (click)="openImageModal(0)">
+                </div>
+                
+                <!-- Second Image (Medium) -->
+                <div class="photo-item photo-medium" *ngIf="property.images.length >= 2">
+                  <img [src]="getPropertyImage(1)" 
+                       [alt]="property.name"
+                       (click)="openImageModal(1)">
+                </div>
+                
+                <!-- Third Image (Medium) with "Show all photos" overlay -->
+                <div class="photo-item photo-medium photo-show-all" *ngIf="property.images.length >= 3">
+                  <img [src]="getPropertyImage(2)" 
+                       [alt]="property.name"
+                       (click)="openImageModal(2)">
+                  <div class="photo-overlay" (click)="openImageModal(2)">
+                    <i class="bi bi-grid-3x3-gap"></i>
+                    <span>Hiển thị tất cả {{ property.images.length }} ảnh</span>
+                  </div>
+                </div>
+              </div>
+            </div>
           </section>
           
           <hr>
@@ -278,15 +309,19 @@
               </div>
             </div>
             
-            <!-- Date Picker -->
+            <!-- Date Range Picker -->
             <div class="form-group">
               <label>Chọn ngày của bạn</label>
-              <input class="form-control" 
-                     type="text" 
-                     [(ngModel)]="selectedDates"
-                     name="dates" 
-                     placeholder="Chọn ngày check-in và check-out">
-              <i class="bi bi-calendar-event"></i>
+              <app-date-range-picker
+                [minDate]="today"
+                [maxDate]="oneYearLater"
+                [minNights]="1"
+                [maxNights]="30"
+                [blockedDates]="blockedDates"
+                [initialCheckIn]="initialCheckIn"
+                [initialCheckOut]="initialCheckOut"
+                (rangeSelected)="onRangeSelected($event)">
+              </app-date-range-picker>
             </div>
             
             <!-- Guest Selector -->
@@ -317,33 +352,11 @@
                   </div>
                 </div>
                 
-                <!-- Teenagers -->
-                <div class="qtyButtons">
-                  <div>
-                    <label>Thanh thiếu niên</label>
-                    <div class="sub-label">Độ tuổi 11 - 17</div>
-                  </div>
-                  <div class="qty-controls">
-                    <button type="button" 
-                            class="btn-qty-minus" 
-                            [disabled]="!canDecrement('teenagers')"
-                            (click)="decrementGuest('teenagers')">-</button>
-                    <input type="text" 
-                           name="teenagers" 
-                           [value]="guestCounts.teenagers" 
-                           readonly>
-                    <button type="button" 
-                            class="btn-qty-plus" 
-                            [disabled]="!canIncrement('teenagers')"
-                            (click)="incrementGuest('teenagers')">+</button>
-                  </div>
-                </div>
-                
                 <!-- Children -->
                 <div class="qtyButtons">
                   <div>
-                    <label>Trẻ em</label>
-                    <div class="sub-label">Độ tuổi 2 - 10</div>
+                    <label>Trẻ em và trẻ vị thành niên</label>
+                    <div class="sub-label">Từ 2-17 tuổi</div>
                   </div>
                   <div class="qty-controls">
                     <button type="button" 
@@ -450,5 +463,55 @@
     </div>
   </div>
 </main>
+
+<!-- Image Modal -->
+<div class="image-modal" *ngIf="isImageModalOpen" (click)="closeImageModal()">
+  <div class="modal-overlay"></div>
+  
+  <div class="modal-content" (click)="$event.stopPropagation()">
+    <!-- Modal Header -->
+    <div class="modal-header">
+      <h3>{{ currentImageIndex + 1 }} / {{ property?.images?.length || 0 }}</h3>
+      <button class="close-btn" (click)="closeImageModal()">
+        <i class="bi bi-x-lg"></i>
+      </button>
+    </div>
+    
+    <!-- Main Image Display -->
+    <div class="modal-body">
+      <button class="nav-btn prev-btn" 
+              [disabled]="currentImageIndex === 0"
+              (click)="previousImage(); $event.stopPropagation()">
+        <i class="bi bi-chevron-left"></i>
+      </button>
+      
+      <div class="main-image-container">
+        <img [src]="getPropertyImage(currentImageIndex)" 
+             [alt]="property?.name"
+             class="main-image">
+      </div>
+      
+      <button class="nav-btn next-btn" 
+              [disabled]="currentImageIndex === (property?.images?.length || 0) - 1"
+              (click)="nextImage(); $event.stopPropagation()">
+        <i class="bi bi-chevron-right"></i>
+      </button>
+    </div>
+    
+    <!-- Thumbnails -->
+    <div class="modal-footer">
+      <div class="thumbnails-container">
+        <div class="thumbnail-wrapper" 
+             *ngFor="let image of property?.images; let i = index"
+             [class.active]="i === currentImageIndex"
+             (click)="selectImage(i); $event.stopPropagation()">
+          <img [src]="getPropertyImage(i)" 
+               [alt]="'Image ' + (i + 1)"
+               class="thumbnail">
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
 
 <app-footer></app-footer>

@@ -1,0 +1,55 @@
+<div class="payment-container">
+  <div class="payment-card">
+    <div class="cancel-icon">
+      <svg viewBox="0 0 52 52">
+        <line x1="16" y1="16" x2="36" y2="36"/>
+        <line x1="36" y1="16" x2="16" y2="36"/>
+      </svg>
+    </div>
+
+    <h1>Payment Cancelled</h1>
+    <p class="message">
+      You cancelled the payment. No charges were made.
+      <br>
+      You can try again from My Bookings page.
+    </p>
+
+    <div class="info-box" *ngIf="bookingId > 0">
+      <div class="info-row">
+        <span class="info-label">Booking ID:</span>
+        <span class="info-value">#{{ bookingId }}</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">Status:</span>
+        <span class="info-value status-confirmed">Still CONFIRMED - Payment not completed</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">Payment Deadline:</span>
+        <span class="info-value">24 hours from approval</span>
+      </div>
+    </div>
+
+    <div class="warning-box">
+      <h3>⚠️ What happens next?</h3>
+      <ul>
+        <li>Your booking remains <strong>CONFIRMED</strong> (not cancelled)</li>
+        <li>If you applied a promotion, it has been <strong>unlocked</strong> automatically</li>
+        <li>You can retry payment anytime before the deadline</li>
+        <li>Booking will expire if not paid within 24 hours of approval</li>
+      </ul>
+    </div>
+
+    <p class="redirect-notice">
+      Redirecting to My Bookings in {{ redirectCountdown }} second<span *ngIf="redirectCountdown !== 1">s</span>...
+    </p>
+
+    <div class="buttons">
+      <button (click)="goHome()" class="btn-secondary">Back to Home</button>
+      <button (click)="goToBookings()" class="btn-primary">View My Bookings</button>
+    </div>
+
+    <div class="footer">
+      <p>Need help? Contact support@hotel.com</p>
+    </div>
+  </div>
+</div>

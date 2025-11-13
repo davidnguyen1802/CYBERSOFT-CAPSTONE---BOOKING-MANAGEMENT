@@ -122,8 +122,9 @@ public class UserReviewServiceImp implements UserReviewService {
     }
 
     private ReviewDTO updateReviewWithOptimisticLocking(int id, UserReviewReuquest request) {
-        UserDetails userDetails =(UserDetails) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        if(!userDetails.getUsername().equals(request.getUserId().toString())){
+        List<UserReview> reviews = userReviewRepository.findByUserIdAndProperty_Status_Name(request.getUserId(), "AVAILABLE");
+        boolean exists = reviews.stream().anyMatch(review -> review.getId() == id);
+        if(!exists){
             throw new RuntimeException("You can only update your own reviews");
         }
         UserReview existingReview = userReviewRepository.findById(id)
@@ -193,8 +194,9 @@ public class UserReviewServiceImp implements UserReviewService {
     }
 
     private void deleteReviewWithOptimisticLocking(int id, Integer userId) {
-        String currentUserId = ((UserDetails) SecurityContextHolder.getContext().getAuthentication().getPrincipal()).getUsername();
-        if(!currentUserId.equals(userId.toString())){
+        List<UserReview> reviews = userReviewRepository.findByUserIdAndProperty_Status_Name(userId, "AVAILABLE");
+        boolean exists = reviews.stream().anyMatch(review -> review.getId() == id);
+        if(!exists){
             throw new RuntimeException("You can only delete your own reviews");
         }
         UserReview existingReview = userReviewRepository.findById(id)

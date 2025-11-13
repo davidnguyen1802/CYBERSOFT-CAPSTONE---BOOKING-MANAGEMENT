@@ -35,6 +35,10 @@ public class Status {
     @OneToMany(mappedBy = "status")
     private List<UserAccount> userAccounts;
 
+    /**
+     * Constructor với ID - dùng để tạo Status object mà không cần query DB
+     * QUAN TRỌNG: Phải verify IDs từ database thực tế trước khi sử dụng
+     */
     public Status(int id) {
         this.id = id;
         switch (id) {
@@ -52,6 +56,27 @@ public class Status {
                 break;
             case 5:
                 this.name = "UNAVAILABLE";
+                break;
+            case 6:
+                this.name = "PENDING"; // Booking status
+                break;
+            case 7:
+                this.name = "CONFIRMED"; // Booking status
+                break;
+            case 8:
+                this.name = "PAID"; // Booking status
+                break;
+            case 9:
+                this.name = "COMPLETED"; // Booking status
+                break;
+            case 10:
+                this.name = "CANCELLED"; // Booking status
+                break;
+            case 11:
+                this.name = "REJECTED"; // Booking status
+                break;
+            case 12:
+                this.name = "USED"; // UserPromotion status (after payment success)
                 break;
             default:
                 this.name = "Unknown";

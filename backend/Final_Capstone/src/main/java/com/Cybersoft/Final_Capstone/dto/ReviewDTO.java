@@ -8,7 +8,6 @@ import java.time.LocalDateTime;
 @Data
 public class ReviewDTO {
     private int reviewId;
-    private String username;
     private String propertyName;
     private Integer propertyId;
     private String comment;

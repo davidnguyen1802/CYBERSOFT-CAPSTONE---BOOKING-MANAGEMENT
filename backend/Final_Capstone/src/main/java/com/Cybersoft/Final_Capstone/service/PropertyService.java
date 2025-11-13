@@ -11,43 +11,18 @@ import java.math.BigDecimal;
 import java.util.List;
 
 public interface PropertyService {
-    PropertyDTO insertProperty(PropertyRequest propertyRequest);
+    int insertProperty(PropertyRequest propertyRequest);
     PropertyDTO updateProperty(int id, PropertyRequest propertyRequest);
     void deleteProperty(int id);
-    PropertyDTO getPropertyByName(String name);
-    List<PropertyDTO> getByCity(String cityName);
-    List<PropertyDTO> getByLocation(String locationName);
-    List<PropertyDTO> getAllProperties();
-    List<PropertyDTO> getByPropertyType(int propertyType);
-    List<PropertyDTO> getByPriceRange(BigDecimal minPrice, BigDecimal maxPrice);
-    List<PropertyDTO> getByNumBedRooms(Integer numberOfBedrooms);
-    List<PropertyDTO> getByNumBathrooms(Integer numberOfBathrooms);
-    List<PropertyDTO> getByAmenities(List<Integer> amenities);
-    List<PropertyDTO> getByFacilities(List<Integer> facilities);
-    List<PropertyDTO> getByHostId(Integer hostId);
 
-    List<PropertyDTO> getByMaxAdults(Integer maxAdults);
-    List<PropertyDTO> getByMaxChildren(Integer maxChildren);
-    List<PropertyDTO> getByMaxInfants(Integer maxInfants);
-    List<PropertyDTO> getByMaxPets(Integer maxPets);
+    // Keep only methods that are actively used
+    List<PropertyDTO> getByHostId(Integer hostId); // Used by HostService
+    PageResponse<PropertyDTO> getByHostId(Integer hostId, Pageable pageable); // Paginated version
     List<PropertyDTO> getTop4PropertiesBaseOnType(int propertyType);
-    /**
-     * Backward-compatible declarations for older callers. Implementations should delegate to getTop4*.
-     * Deprecated: prefer getTop4Properties()/getTop4PropertiesBaseOnType(int)
-     */
     List<PropertyDTO> getTop7Properties();
 
     // Get a property by id only if its status is AVAILABLE
     PropertyDTO getAvailablePropertyById(Integer id);
-
-    // Get properties by type and city name (AVAILABLE only)
-    List<PropertyDTO> getByPropertyTypeAndCity(int propertyType, String cityName);
-
-    // Get properties by type and location name (AVAILABLE only)
-    List<PropertyDTO> getByPropertyTypeAndLocation(int propertyType, String locationName);
-
-    // Get properties by type and max pets
-    List<PropertyDTO> getByPropertyTypeAndMaxPets(int propertyType, Integer maxPets);
 
     // Dynamic search with multiple filters
     List<PropertyDTO> searchProperties(
@@ -97,4 +72,13 @@ public interface PropertyService {
     );
 
     // Bulk recalculation of review counts from user_review table. Returns number of rows updated.
+    // Create property with images, amenities, facilities in one transaction. Returns propertyId.
+
+    int createCompleteProperty(
+            PropertyRequest propertyRequest,
+            List<org.springframework.web.multipart.MultipartFile> imageFiles,
+            List<String> imageDescriptions,
+            List<Integer> amenityIds,
+            List<Integer> facilityIds
+    );
 }

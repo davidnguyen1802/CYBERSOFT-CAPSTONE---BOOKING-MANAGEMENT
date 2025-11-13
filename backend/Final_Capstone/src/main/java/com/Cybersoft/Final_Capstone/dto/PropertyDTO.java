@@ -1,11 +1,10 @@
 package com.Cybersoft.Final_Capstone.dto;
 
-import com.Cybersoft.Final_Capstone.Entity.Image;
-import com.Cybersoft.Final_Capstone.Entity.UserReview;
 import com.Cybersoft.Final_Capstone.Enum.PropertyType;
 import lombok.Data;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Data
@@ -32,5 +31,6 @@ public class PropertyDTO {
     private List<AmenityDTO> amenities;
     private List<FacilityDTO> facilities;
     private List<String> nameUserFavorites;
+    private LocalDateTime createDate;
 
 }

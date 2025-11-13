@@ -4,7 +4,7 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
 
 public enum DiscountType {
-    PERCENT(0), AMOUNT(1);
+    PERCENTAGE(0), AMOUNT(1);
     private final int value;
 
     DiscountType(int value) {

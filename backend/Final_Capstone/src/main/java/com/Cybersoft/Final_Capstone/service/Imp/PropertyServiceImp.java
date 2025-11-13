@@ -2,6 +2,7 @@ package com.Cybersoft.Final_Capstone.service.Imp;
 
 import com.Cybersoft.Final_Capstone.Entity.*;
 import com.Cybersoft.Final_Capstone.Enum.PropertyType;
+import com.Cybersoft.Final_Capstone.components.SecurityUtil;
 import com.Cybersoft.Final_Capstone.dto.PropertyDTO;
 import com.Cybersoft.Final_Capstone.dto.PropertyListItemDTO;
 import com.Cybersoft.Final_Capstone.exception.DataNotFoundException;
@@ -12,7 +13,11 @@ import com.Cybersoft.Final_Capstone.payload.request.PropertySearchRequest;
 import com.Cybersoft.Final_Capstone.payload.response.PageResponse;
 import com.Cybersoft.Final_Capstone.repository.*;
 import com.Cybersoft.Final_Capstone.service.PropertyService;
+import com.Cybersoft.Final_Capstone.payload.request.ImageRequest;
+import com.Cybersoft.Final_Capstone.payload.request.AmenityRequest;
+import com.Cybersoft.Final_Capstone.payload.request.FacilityRequest;
 import com.Cybersoft.Final_Capstone.specification.PropertySpecification;
+import org.springframework.web.multipart.MultipartFile;
 import com.Cybersoft.Final_Capstone.util.UpdateHelper;
 import com.Cybersoft.Final_Capstone.util.PageableBuilder;
 import com.Cybersoft.Final_Capstone.util.PageResponseMapper;
@@ -37,20 +42,30 @@ public class PropertyServiceImp implements PropertyService {
     private LocationRepository locationRepository;
 
     @Autowired
-    private UserAccountRepository userAccountRepository;
+    private SecurityUtil securityUtil;
+
+    @Autowired
+    private ImageServiceImp imageService;
+
+    @Autowired
+    private AmenityServiceImp amenityService;
+
+    @Autowired
+    private FacilityServiceImp facilityService;
 
     private static final String AVAILABLE_STATUS = "AVAILABLE";
 
     @Transactional
     @Override
-    public PropertyDTO insertProperty(PropertyRequest propertyRequest) {
+    public int insertProperty(PropertyRequest propertyRequest) {
         Property property = new Property();
-        /*Lấy userId từ Token
-        * Integer userId = (Integer) SecurityContextHolder.getContext().getAuthentication().getPrincipal();*/
-        // Use hostId from request if provided, otherwise use hardcoded value (or from SecurityContext in production)
-        int userId = propertyRequest.getHostId() != null ? propertyRequest.getHostId() : 2; //Thay tạm userId = 2
-        UserAccount host = userAccountRepository.findById(userId)
-                        .orElseThrow(()-> new DataNotFoundException("User not found with id: " + userId));
+        
+        // Lấy host từ authenticated user (đã được bảo vệ bởi @PreAuthorize("hasRole('HOST')"))
+        UserAccount host = securityUtil.getLoggedInUser();
+        if (host == null) {
+            throw new DataNotFoundException("No authenticated user found");
+        }
+        
         property.setHost(host);
         property.setPropertyName(propertyRequest.getPropertyName());
         property.setFullAddress(propertyRequest.getFullAddress());
@@ -68,13 +83,17 @@ public class PropertyServiceImp implements PropertyService {
                 .orElseThrow(()-> new DataNotFoundException("Location not found with id: " + propertyRequest.getLocationId()));
         property.setLocation(location);
 
-        return PropertyMapper.toDTO(propertyRepository.save(property));
+        return propertyRepository.save(property).getId();
     }
 
     @Override
     public PropertyDTO updateProperty(int id, PropertyRequest propertyRequest) {
         Property property = propertyRepository.findByIdForUpdate(id)
                 .orElseThrow(()-> new DataNotFoundException("Property not found with id: " + id));
+        
+        // ⚠️ SECURITY: Verify ownership before updating
+        verifyOwnership(property);
+        
         UpdateHelper.copyNonNullChangedFields(propertyRequest, property, "locationId");
         if(propertyRequest.getLocationId() != null){
             Location location = locationRepository.findById(propertyRequest.getLocationId())
@@ -93,6 +112,10 @@ public class PropertyServiceImp implements PropertyService {
     public void deleteProperty(int id) {
         Property property = propertyRepository.findById(id)
                 .orElseThrow(()-> new DataNotFoundException("Property not found with id: " + id));
+        
+        // ⚠️ SECURITY: Verify ownership before deleting
+        verifyOwnership(property);
+        
         try{
             property.setStatus(new Status(3)); //Chuyển sang trạng thái Inactive
             propertyRepository.save(property);
@@ -103,108 +126,8 @@ public class PropertyServiceImp implements PropertyService {
     }
 
     @Override
-    public PropertyDTO getPropertyByName(String name) {
-        return propertyRepository.findByPropertyNameContainingIgnoreCaseAndStatus_Name(name, AVAILABLE_STATUS)
-                .map(PropertyMapper::toDTO)
-                .orElseThrow(()-> new DataNotFoundException("Property not found with name: " + name));
-    }
-
-    @Override
-    public List<PropertyDTO> getByCity(String cityName) {
-        List<Property> properties = propertyRepository.findByLocation_City_CityNameAndStatus_Name(cityName, AVAILABLE_STATUS);
-        try {
-            if (properties.isEmpty()) {
-                throw new DataNotFoundException("No properties found in city: " + cityName);
-            }
-        } catch (Exception e){
-            throw new RuntimeException("Get properties by city failed");
-        }
-       return properties.stream().map(PropertyMapper::toDTO).collect(toList());
-    }
-
-    @Override
-    public List<PropertyDTO> getByLocation(String locationName) {
-        List<Property> properties = propertyRepository.findByLocation_LocationNameAndStatus_Name(locationName, AVAILABLE_STATUS);
-        if(properties.isEmpty()){
-            throw new DataNotFoundException("No properties found in location: " + locationName);
-        }
-        return properties.stream().map(PropertyMapper::toDTO).collect(toList());
-    }
-    // Dùng cache
-    @Override
-    public List<PropertyDTO> getAllProperties() {
-        // Use the repository-level "visible" filter to exclude Pending and Inactive properties in SQL
-        List<Property> properties = propertyRepository.findAllVisibleProperties();
-        if(properties.isEmpty()){
-            throw new DataNotFoundException("No properties found");
-        }
-        return properties.stream().map(PropertyMapper::toDTO).collect(toList());
-    }
-
-    @Override
-    public List<PropertyDTO> getByPropertyType(int propertyType) {
-        PropertyType type;
-        try{
-            type = PropertyType.fromValue(propertyType);
-        } catch (IllegalArgumentException e){
-            throw new DataNotFoundException("Invalid property type: " + propertyType);
-        }
-        List<Property> properties = propertyRepository.findByPropertyTypeAndStatus_Name(type, AVAILABLE_STATUS);
-        if(properties.isEmpty()){
-            throw new DataNotFoundException("No properties found with type: " + type);
-        }
-        return properties.stream().map(PropertyMapper::toDTO).collect(toList());
-
-    }
-
-    @Override
-    public List<PropertyDTO> getByPriceRange(BigDecimal minPrice, BigDecimal maxPrice) {
-        List<Property> properties = propertyRepository.searchByPriceBetween(minPrice, maxPrice);
-        if(properties.isEmpty()){
-            throw new DataNotFoundException("No properties found in price range: " + minPrice + " - " + maxPrice);
-        }
-        return properties.stream().map(PropertyMapper::toDTO).collect(toList());
-    }
-
-    @Override
-    public List<PropertyDTO> getByNumBedRooms(Integer numberOfBedrooms) {
-        List<Property> properties = propertyRepository.findByNumberOfBedroomsAndStatus_Name(numberOfBedrooms, AVAILABLE_STATUS);
-        if(properties.isEmpty()){
-            throw new DataNotFoundException("No properties found with number of bedrooms: " + numberOfBedrooms);
-        }
-        return properties.stream().map(PropertyMapper::toDTO).collect(toList());
-    }
-
-    @Override
-    public List<PropertyDTO> getByNumBathrooms(Integer numberOfBathrooms) {
-        List<Property> properties = propertyRepository.findByNumberOfBathroomsAndStatus_Name(numberOfBathrooms, AVAILABLE_STATUS);
-        if(properties.isEmpty()){
-            throw new DataNotFoundException("No properties found with number of bathrooms: " + numberOfBathrooms);
-        }
-        return properties.stream().map(PropertyMapper::toDTO).collect(toList());
-    }
-
-    @Override
-    public List<PropertyDTO> getByAmenities(List<Integer> amenities) {
-        List<Property> properties = propertyRepository.findDistinctByAmenities_IdInAndStatus_Name(amenities, AVAILABLE_STATUS);
-        if(properties.isEmpty()){
-            throw new DataNotFoundException("No properties found with given amenities");
-        }
-        return properties.stream().map(PropertyMapper::toDTO).collect(toList());
-    }
-
-    @Override
-    public List<PropertyDTO> getByFacilities(List<Integer> facilities) {
-        List<Property> properties = propertyRepository.findDistinctByFacilities_IdInAndStatus_Name(facilities, AVAILABLE_STATUS);
-        if(properties.isEmpty()){
-            throw new DataNotFoundException("No properties found with given facilities");
-        }
-        return properties.stream().map(PropertyMapper::toDTO).collect(toList());
-    }
-
-    @Override
     public List<PropertyDTO> getByHostId(Integer hostId) {
-        List<Property> properties = propertyRepository.findByHostIdAndStatus_Name(hostId, AVAILABLE_STATUS);
+        List<Property> properties = propertyRepository.findByHostId(hostId);
         if(properties.isEmpty()){
             throw new DataNotFoundException("No properties found for host with id: " + hostId);
         }
@@ -212,27 +135,26 @@ public class PropertyServiceImp implements PropertyService {
     }
 
     @Override
-    public List<PropertyDTO> getByMaxAdults(Integer maxAdults) {
-        return propertyRepository.findByMaxAdultsGreaterThanEqualAndStatus_Name(maxAdults, AVAILABLE_STATUS)
-                .stream().map(PropertyMapper::toDTO).toList();
-    }
-
-    @Override
-    public List<PropertyDTO> getByMaxChildren(Integer maxChildren) {
-        return propertyRepository.findByMaxChildrenGreaterThanEqualAndStatus_Name(maxChildren, AVAILABLE_STATUS)
-                .stream().map(PropertyMapper::toDTO).toList();
-    }
-
-    @Override
-    public List<PropertyDTO> getByMaxInfants(Integer maxInfants) {
-        return propertyRepository.findByMaxInfantsGreaterThanEqualAndStatus_Name(maxInfants, AVAILABLE_STATUS)
-                .stream().map(PropertyMapper::toDTO).toList();
-    }
-
-    @Override
-    public List<PropertyDTO> getByMaxPets(Integer maxPets) {
-        return propertyRepository.findByMaxPetsGreaterThanEqualAndStatus_Name(maxPets, AVAILABLE_STATUS)
-                .stream().map(PropertyMapper::toDTO).toList();
+    public PageResponse<PropertyDTO> getByHostId(Integer hostId, Pageable pageable) {
+        Page<Property> propertyPage = propertyRepository.findAll(
+            (root, query, criteriaBuilder) -> criteriaBuilder.equal(root.get("host").get("id"), hostId),
+            pageable
+        );
+        
+        List<PropertyDTO> propertyDTOs = propertyPage.getContent().stream()
+                .map(PropertyMapper::toDTO)
+                .toList();
+        
+        return PageResponse.<PropertyDTO>builder()
+                .content(propertyDTOs)
+                .currentPage(propertyPage.getNumber())
+                .pageSize(propertyPage.getSize())
+                .totalElements(propertyPage.getTotalElements())
+                .totalPages(propertyPage.getTotalPages())
+                .first(propertyPage.isFirst())
+                .last(propertyPage.isLast())
+                .empty(propertyPage.isEmpty())
+                .build();
     }
 
     @Override
@@ -264,51 +186,6 @@ public class PropertyServiceImp implements PropertyService {
         Property property = propertyRepository.findByIdAndStatus_Name(id, AVAILABLE_STATUS)
                 .orElseThrow(() -> new DataNotFoundException("Property not found or not available with id: " + id));
         return PropertyMapper.toDTO(property);
-    }
-
-    @Override
-    public List<PropertyDTO> getByPropertyTypeAndCity(int propertyType, String cityName) {
-        PropertyType type;
-        try {
-            type = PropertyType.fromValue(propertyType);
-        } catch (IllegalArgumentException e) {
-            throw new DataNotFoundException("Invalid property type: " + propertyType);
-        }
-        List<Property> properties = propertyRepository.findByPropertyTypeAndLocation_City_CityNameAndStatus_Name(type, cityName, AVAILABLE_STATUS);
-        if (properties.isEmpty()) {
-            throw new DataNotFoundException("No properties found with type: " + type + " in city: " + cityName);
-        }
-        return properties.stream().map(PropertyMapper::toDTO).collect(toList());
-    }
-
-    @Override
-    public List<PropertyDTO> getByPropertyTypeAndLocation(int propertyType, String locationName) {
-        PropertyType type;
-        try {
-            type = PropertyType.fromValue(propertyType);
-        } catch (IllegalArgumentException e) {
-            throw new DataNotFoundException("Invalid property type: " + propertyType);
-        }
-        List<Property> properties = propertyRepository.findByPropertyTypeAndLocation_LocationNameAndStatus_Name(type, locationName, AVAILABLE_STATUS);
-        if (properties.isEmpty()) {
-            throw new DataNotFoundException("No properties found with type: " + type + " in location: " + locationName);
-        }
-        return properties.stream().map(PropertyMapper::toDTO).collect(toList());
-    }
-
-    @Override
-    public List<PropertyDTO> getByPropertyTypeAndMaxPets(int propertyType, Integer maxPets) {
-        PropertyType type;
-        try {
-            type = PropertyType.fromValue(propertyType);
-        } catch (IllegalArgumentException e) {
-            throw new DataNotFoundException("Invalid property type: " + propertyType);
-        }
-        List<Property> properties = propertyRepository.findByPropertyTypeAndMaxPetsGreaterThanEqualAndStatus_Name(type, maxPets, AVAILABLE_STATUS);
-        if (properties.isEmpty()) {
-            throw new DataNotFoundException("No properties found with type: " + type + " and max pets >= " + maxPets);
-        }
-        return properties.stream().map(PropertyMapper::toDTO).collect(toList());
     }
 
     @Override
@@ -416,5 +293,64 @@ public class PropertyServiceImp implements PropertyService {
 
         // Convert to PageResponse with lightweight DTOs (DRY - single mapping point)
         return PageResponseMapper.toPageResponse(page, PropertyListItemMapper::toListItemDTO);
+    }
+
+    // Create property with images, amenities, facilities in one transaction. Returns propertyId.
+    @Override
+    @Transactional
+    public int createCompleteProperty(
+            PropertyRequest propertyRequest,
+            List<MultipartFile> imageFiles,
+            List<String> imageDescriptions,
+            List<Integer> amenityIds,
+            List<Integer> facilityIds
+    ) {
+        int propertyId = insertProperty(propertyRequest);
+        
+        if (imageFiles != null && !imageFiles.isEmpty()) {
+            ImageRequest imageRequest = new ImageRequest();
+            imageRequest.setPropertyId(propertyId);
+            imageRequest.setFile(imageFiles);
+            imageRequest.setImageDescription(imageDescriptions);
+            imageService.addImageToProperty(imageRequest);
+        }
+        
+        if (amenityIds != null && !amenityIds.isEmpty()) {
+            AmenityRequest amenityRequest = new AmenityRequest();
+            amenityRequest.setIdProperty(propertyId);
+            amenityRequest.setIds(amenityIds);
+            amenityService.addAmenityToProperty(amenityRequest);
+        }
+        
+        if (facilityIds != null && !facilityIds.isEmpty()) {
+            FacilityRequest facilityRequest = new FacilityRequest();
+            facilityRequest.setPropertyId(propertyId);
+            facilityRequest.setIds(facilityIds);
+            facilityService.addFacilityToProperty(facilityRequest);
+        }
+        
+        return propertyId;
+    }
+
+    /**
+     * ⚠️ SECURITY: Verify that the logged-in user owns the property
+     * Throws SecurityException if user is not the owner
+     * ADMIN role can bypass this check
+     */
+    private void verifyOwnership(Property property) {
+        UserAccount currentUser = securityUtil.getLoggedInUser();
+        if (currentUser == null) {
+            throw new SecurityException("No authenticated user found");
+        }
+        
+        // Allow ADMIN to bypass ownership check
+        if ("ADMIN".equals(currentUser.getRole().getName())) {
+            return;
+        }
+        
+        // Check if current user is the owner
+        if (!currentUser.getId().equals(property.getHost().getId())) {
+            throw new SecurityException("You are not authorized to modify this property. Only the owner can modify it.");
+        }
     }
 }

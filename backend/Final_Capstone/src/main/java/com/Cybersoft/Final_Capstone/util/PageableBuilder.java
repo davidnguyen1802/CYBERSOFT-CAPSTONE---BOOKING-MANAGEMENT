@@ -20,10 +20,16 @@ public class PageableBuilder {
             "propertyName", "numberOfBedrooms", "numberOfBathrooms"
     ));
 
+    // Whitelist of allowed sort fields for Booking entity
+    private static final Set<String> ALLOWED_BOOKING_SORT_FIELDS = new HashSet<>(Arrays.asList(
+            "createdAt", "updatedAt", "checkIn", "checkOut", "totalPrice"
+    ));
+
     private static final int DEFAULT_PAGE = 0;
     private static final int DEFAULT_SIZE = 10; // changed default page size to 10
     private static final int MAX_SIZE = 100;
     private static final String DEFAULT_SORT_FIELD = "overallRating";
+    private static final String DEFAULT_BOOKING_SORT_FIELD = "createdAt";
     private static final String DEFAULT_SORT_DIRECTION = "DESC";
 
     /**
@@ -78,5 +84,38 @@ public class PageableBuilder {
         }
 
         return buildPropertyPageable(page, size, sortBy, sortDirection);
+    }
+
+    /**
+     * Build Pageable for Booking entity with validation.
+     * @param page Page number (0-based), defaults to 0 if null or negative
+     * @param size Page size, defaults to 10, max 100
+     * @param sortBy Sort field, defaults to "createdAt", must be in whitelist
+     * @param sortDirection Sort direction (ASC/DESC), defaults to DESC
+     * @return Validated Pageable object for Booking
+     */
+    public static Pageable buildBookingPageable(Integer page, Integer size, String sortBy, String sortDirection) {
+        // Validate and normalize page
+        int validPage = (page != null && page >= 0) ? page : DEFAULT_PAGE;
+
+        // Validate and normalize size
+        int validSize = DEFAULT_SIZE;
+        if (size != null && size > 0) {
+            validSize = Math.min(size, MAX_SIZE);
+        }
+
+        // Validate and normalize sort field
+        String validSortBy = DEFAULT_BOOKING_SORT_FIELD;
+        if (sortBy != null && !sortBy.trim().isEmpty() && ALLOWED_BOOKING_SORT_FIELDS.contains(sortBy)) {
+            validSortBy = sortBy;
+        }
+
+        // Validate and normalize sort direction
+        Sort.Direction direction = Sort.Direction.DESC;
+        if (sortDirection != null && sortDirection.trim().equalsIgnoreCase("ASC")) {
+            direction = Sort.Direction.ASC;
+        }
+
+        return PageRequest.of(validPage, validSize, Sort.by(direction, validSortBy));
     }
 }

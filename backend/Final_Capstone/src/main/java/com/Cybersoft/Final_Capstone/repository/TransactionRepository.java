@@ -27,5 +27,7 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
 
     // Find transactions by user and payment status
     List<Transaction> findByUserIdAndPaymentStatus(Integer userId, String paymentStatus);
-}
 
+    // Find transaction by booking ID and payment status
+    Transaction findByBookingIdAndPaymentStatus(Integer bookingId, String paymentStatus);
+}

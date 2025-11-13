@@ -22,6 +22,10 @@ public class SignInRequest {
     @NotBlank(message = "Password is required")
     private String password;
 
+    // NOTE: Remember Me flag cho persistent cookie
+    @Builder.Default
+    private Boolean rememberMe = false;
+
     // Facebook Account Id, not mandatory, can be blank
     private String facebookAccountId;
 
@@ -45,4 +49,3 @@ public class SignInRequest {
         return googleAccountId != null && !googleAccountId.isEmpty();
     }
 }
-

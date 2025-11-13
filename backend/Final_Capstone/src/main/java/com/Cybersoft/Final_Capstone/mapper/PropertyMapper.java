@@ -5,10 +5,7 @@ import com.Cybersoft.Final_Capstone.Entity.UserAccount;
 import com.Cybersoft.Final_Capstone.dto.ImageDTO;
 import com.Cybersoft.Final_Capstone.dto.PropertyDTO;
 import com.Cybersoft.Final_Capstone.dto.ReviewDTO;
-import com.Cybersoft.Final_Capstone.repository.PropertyRepository;
 
-import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -43,6 +40,7 @@ public class PropertyMapper {
         dto.setAmenities(property.getAmenities().stream().map(AmenityMapper::toDTO).toList());
         dto.setFacilities(property.getFacilities().stream().map(FacilityMapper::toDTO).toList());
         dto.setNameUserFavorites(property.getFavoriteBy().stream().map(UserAccount::getUsername).toList());
+        dto.setCreateDate(property.getCreateDate());
         return dto;
     }
 }

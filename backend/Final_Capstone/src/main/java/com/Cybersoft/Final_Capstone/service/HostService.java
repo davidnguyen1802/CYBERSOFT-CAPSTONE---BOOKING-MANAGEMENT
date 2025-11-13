@@ -1,40 +1,30 @@
 package com.Cybersoft.Final_Capstone.service;
 
 import com.Cybersoft.Final_Capstone.dto.*;
-import com.Cybersoft.Final_Capstone.payload.request.PropertyRequest;
-
-import java.time.LocalDateTime;
-import java.util.List;
 
 public interface HostService {
     
-    // Host profile management
-    HostDTO getHostProfile(Integer hostId);
+    // ==================== REMOVED DUPLICATE METHODS ====================
+    // ❌ getHostProfile() - Use UserService.getMyProfile() + GET /users/me/details instead
+    // ❌ getHostProperties() - Use PropertyService.getByHostId() + GET /property/host/{hostId} instead
+    // ❌ updateProperty() - Use PropertyService.updateProperty() + PUT /property/{id} instead (now has ownership check)
+    // ❌ deleteProperty() - Use PropertyService.deleteProperty() + DELETE /property/{id} instead (now has ownership check)
     
-    // Property management for hosts
-    List<PropertyDTO> getHostProperties(Integer hostId);
-    PropertyDTO addProperty(Integer hostId, PropertyRequest propertyRequest);
-    PropertyDTO updateProperty(Integer hostId, Integer propertyId, PropertyRequest propertyRequest);
-    void deleteProperty(Integer hostId, Integer propertyId);
+    // ==================== REMOVED REDUNDANT GUEST TRACKING METHODS ====================
+    // ❌ getCurrentGuests() - Use BookingController: GET /bookings/host/{hostId}/filter?status=CONFIRMED
+    // ❌ getUpcomingGuests() - Use BookingController: GET /bookings/host/{hostId}/filter?status=PENDING,CONFIRMED
+    // ❌ getPastGuests() - Use BookingController: GET /bookings/host/{hostId}/filter?status=COMPLETED
+    // ❌ getGuestsForProperty() - Use BookingController: GET /bookings/property/{propertyId}
     
-    // Booking management for hosts
-    List<BookingDTO> getHostBookings(Integer hostId);
-    List<BookingDTO> getHostBookingsByStatus(Integer hostId, String statusName);
-    List<BookingDTO> getPropertyBookings(Integer hostId, Integer propertyId);
-    BookingDTO approveBooking(Integer hostId, Integer bookingId);
-    BookingDTO rejectBooking(Integer hostId, Integer bookingId, String reason);
+    // ==================== Host Statistics & Analytics ====================
     
-    // Guest tracking
-    List<GuestInfoDTO> getCurrentGuests(Integer hostId);
-    List<GuestInfoDTO> getUpcomingGuests(Integer hostId);
-    List<GuestInfoDTO> getPastGuests(Integer hostId);
-    List<GuestInfoDTO> getGuestsForProperty(Integer hostId, Integer propertyId);
-    
-    // Statistics and analytics
+    /**
+     * Get comprehensive statistics for a host
+     * Includes: total properties, bookings by status, revenue, average rating
+     */
     HostStatisticsDTO getHostStatistics(Integer hostId);
     
-    // Property availability
-    List<BookingDTO> getPropertyBookingsInDateRange(Integer hostId, Integer propertyId, 
-                                                     LocalDateTime startDate, LocalDateTime endDate);
+    // ❌ REMOVED: getPropertyBookingsInDateRange()
+    // ✅ USE INSTEAD: BookingService.getPropertyBookingsInDateRange() + GET /bookings/property/{propertyId}/date-range
 }
 

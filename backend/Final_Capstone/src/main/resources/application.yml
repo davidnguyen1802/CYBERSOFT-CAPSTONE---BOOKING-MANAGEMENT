@@ -1,0 +1,113 @@
+server:
+  port: 8080
+
+spring:
+  profiles:
+    active: dev
+  datasource:
+    url: jdbc:mysql://localhost:3306/hotels_management?useUnicode=true&characterEncoding=UTF-8
+    username: root
+    password: admin123
+  jpa:
+    database-platform: org.hibernate.dialect.MySQL8Dialect
+    hibernate:
+      ddl-auto: none
+    show-sql: true
+  servlet:
+    multipart:
+      max-file-size: 100MB
+      max-request-size: 100MB
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: "451118648162-cibc180se4cu6k02f52hkeheju6lvd5f.apps.googleusercontent.com"
+            client-secret: "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"
+            redirect-uri: "${GOOGLE_REDIRECT_URI:http://localhost:8080/auth/social/callback}"
+            scope:
+              - openid
+              - profile
+              - email
+          facebook:
+            client-id: 100765477998152
+            client-secret: 5abd3135745ac7e7e26bd4c8c8b8717
+            redirect-uri: "${FACEBOOK_REDIRECT_URI:http://localhost:8080/auth/social/callback}"
+            auth-uri: https://www.facebook.com/v21.0/dialog/oauth
+            token-uri: https://graph.facebook.com/oauth/access_token
+            user-info-uri: https://graph.facebook.com/me?fields=id,name,email,picture.type(large)
+            scope:
+              - email
+              - public_profile
+        provider:
+          google:
+            authorization-uri: https://accounts.google.com/o/oauth2/v2/auth
+            token-uri: https://oauth2.googleapis.com/token
+            user-info-uri: https://www.googleapis.com/oauth2/v3/userinfo
+            user-name-attribute: sub
+          facebook:
+            authorization-uri: https://www.facebook.com/v21.0/dialog/oauth
+            token-uri: https://graph.facebook.com/v21.0/oauth/access_token
+            user-info-uri: https://graph.facebook.com/me?fields=id,name,email,picture.type(large)
+            user-name-attribute: id
+
+file:
+    root-path: D:\AIRKNT\Final_Capstone\images
+
+jwt:
+  secret: ${JWT_SECRET:dGhpc2lzYXZlcnlzZWN1cmVzZWNyZXRrZXlmb3Jqd3R0b2tlbmVuY29kaW5nMTIzNDU2Nzg5MA==}
+  issuer: Final_Capstone_Backend
+  access-expiration-seconds: 900
+  refresh-expiration-seconds: 86400
+  remember-refresh-expiration-days: 30
+
+cors:
+  allowed-origins:
+    - http://localhost:3000
+    - http://localhost:4200
+    - http://localhost:5173
+    - http://127.0.0.1:5501
+    - https://your-production-domain.com
+  allowed-methods: [GET, POST, PUT, DELETE, PATCH, OPTIONS]
+  allowed-headers:
+    - Authorization
+    - Content-Type        # cần nếu gửi application/json
+    - X-CSRF-Check
+    - X-Device-Id
+    - X-Requested-With    # giữ nếu frontend thực sự gửi
+  exposed-headers:
+    - X-Total-Count       # chỉ giữ cái bạn đọc từ response
+  allow-credentials: true
+  max-age: 3600
+
+
+rate-limit:
+  refresh-endpoint:
+    max-requests: 5
+    window-seconds: 60
+
+mail:
+  host: smtp.gmail.com
+  port: 587
+  username: ncdk05@gmail.com
+  password: pztu vuxm tgns ovln
+  properties:
+    mail:
+      smtp:
+        auth: true
+        starttls:
+          enable: true
+  from: ncdk05@gmail.com
+
+password-reset:
+  token-expiration: 3600000  # 1 hour in milliseconds
+  frontend-url: http://127.0.0.1:5501/frontend_capstone/ansonika.com/panagea/reset-password.html
+
+#Core PayOS credentials
+payos:
+  client-id: "022ba7a1-d5ba-452f-ad5f-f97aeb5da2fa"
+  api-key: "14a437cb-94c0-43df-8b77-f4bbd6ca28eb"
+  checksum-key: "79ee5d5b8f3d1044b12f9f9098eb54fc6fb576b18556acbe51d0c09a7cd20aa9"
+  return-url: "http://localhost:4200/payment/success"
+  cancel-url: "http://localhost:4200/payment/cancel"
+  endpoint: "https://api-merchant.payos.vn/v2/payment-requests"

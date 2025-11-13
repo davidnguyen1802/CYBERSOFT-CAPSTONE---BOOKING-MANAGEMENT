@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payment Cancelled</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 500px;
+            background: white;
+            padding: 50px 40px;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            text-align: center;
+        }
+
+        .cancel-icon {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 30px;
+            animation: scaleIn 0.5s ease-out;
+        }
+
+        .cancel-icon svg {
+            width: 50px;
+            height: 50px;
+            stroke: white;
+            stroke-width: 3;
+            fill: none;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+        @keyframes scaleIn {
+            0% {
+                transform: scale(0);
+            }
+            50% {
+                transform: scale(1.1);
+            }
+            100% {
+                transform: scale(1);
+            }
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 32px;
+        }
+
+        .message {
+            color: #666;
+            margin-bottom: 30px;
+            line-height: 1.6;
+        }
+
+        .info-box {
+            background: #fff3cd;
+            border: 2px solid #ffc107;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 30px 0;
+            text-align: left;
+        }
+
+        .info-box h3 {
+            color: #856404;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+
+        .info-box ul {
+            margin-left: 20px;
+            color: #856404;
+        }
+
+        .info-box li {
+            margin: 8px 0;
+        }
+
+        .buttons {
+            display: flex;
+            gap: 15px;
+            margin-top: 30px;
+        }
+
+        button, a {
+            flex: 1;
+            padding: 15px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            text-align: center;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+        }
+
+        .btn-secondary {
+            background: white;
+            color: #f5576c;
+            border: 2px solid #f5576c;
+        }
+
+        button:hover, a:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(245, 87, 108, 0.3);
+        }
+
+        .footer {
+            margin-top: 30px;
+            color: #999;
+            font-size: 13px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="cancel-icon">
+            <svg viewBox="0 0 52 52">
+                <line x1="16" y1="16" x2="36" y2="36"/>
+                <line x1="36" y1="16" x2="16" y2="36"/>
+            </svg>
+        </div>
+
+        <h1>Payment Cancelled</h1>
+        <p class="message">
+            Your payment has been cancelled. The booking is still in pending status and no charges have been made.
+        </p>
+
+        <div class="info-box">
+            <h3>⚠️ What happened?</h3>
+            <ul>
+                <li>You cancelled the payment process</li>
+                <li>Your booking is saved but not confirmed</li>
+                <li>You can retry payment anytime</li>
+                <li>Booking will expire if not paid within 24 hours</li>
+            </ul>
+        </div>
+
+        <div class="buttons">
+            <a href="/booking-test.html" class="btn-secondary">New Booking</a>
+            <a href="#" class="btn-primary" onclick="retryPayment()">Retry Payment</a>
+        </div>
+
+        <div class="footer">
+            <p>Questions? Contact support@hotel.com</p>
+        </div>
+    </div>
+
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const orderCode = urlParams.get('orderCode');
+
+        function retryPayment() {
+            if (orderCode) {
+                alert('Redirecting to payment page for order: ' + orderCode);
+                // In real scenario, fetch new payment link from backend
+                window.location.href = '/booking-test.html';
+            } else {
+                window.location.href = '/booking-test.html';
+            }
+            return false;
+        }
+
+        // Notify backend about cancellation
+        if (orderCode) {
+            fetch(`http://localhost:8080/api/payment/webhook`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    orderCode: orderCode,
+                    status: 'CANCELLED',
+                    success: false
+                })
+            }).catch(err => console.log('Webhook notification failed:', err));
+        }
+    </script>
+</body>
+</html>
+

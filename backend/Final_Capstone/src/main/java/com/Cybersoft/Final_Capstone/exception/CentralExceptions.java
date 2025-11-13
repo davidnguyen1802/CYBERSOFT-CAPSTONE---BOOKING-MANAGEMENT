@@ -61,4 +61,22 @@ public class CentralExceptions {
         return ResponseEntity.ok(baseResponse);
     }
 
+    @ExceptionHandler(UsernameDuplicateException.class)
+    public ResponseEntity<?> handleUsernameDuplicateException(UsernameDuplicateException e) {
+        BaseResponse baseResponse = new BaseResponse();
+        baseResponse.setCode(503);
+        baseResponse.setMessage(e.getMessage());
+        baseResponse.setData(null);
+        return ResponseEntity.ok(baseResponse);
+    }
+
+    @ExceptionHandler(PhoneDuplicateException.class)
+    public ResponseEntity<?> handlePhoneDuplicateException(PhoneDuplicateException e) {
+        BaseResponse baseResponse = new BaseResponse();
+        baseResponse.setCode(504);
+        baseResponse.setMessage(e.getMessage());
+        baseResponse.setData(null);
+        return ResponseEntity.ok(baseResponse);
+    }
+
 }

@@ -1,9 +1,9 @@
 package com.Cybersoft.Final_Capstone.service.Imp;
 
 import com.Cybersoft.Final_Capstone.Entity.Amenity;
-import com.Cybersoft.Final_Capstone.Entity.Image;
 import com.Cybersoft.Final_Capstone.Entity.Property;
-import com.Cybersoft.Final_Capstone.Entity.Status;
+import com.Cybersoft.Final_Capstone.Entity.UserAccount;
+import com.Cybersoft.Final_Capstone.components.SecurityUtil;
 import com.Cybersoft.Final_Capstone.dto.AmenityDTO;
 import com.Cybersoft.Final_Capstone.exception.DataNotFoundException;
 import com.Cybersoft.Final_Capstone.mapper.AmenityMapper;
@@ -15,6 +15,7 @@ import com.Cybersoft.Final_Capstone.service.AmenityService;
 import com.Cybersoft.Final_Capstone.service.FileStorageService;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -32,13 +33,39 @@ public class AmenityServiceImp implements AmenityService {
 
     @Autowired
     private FileStorageService fileStorageService;
+    
+    @Autowired
+    private SecurityUtil securityUtil;
+    
+    /**
+     * Check if current HOST user owns the property
+     */
+    private void checkHostOwnership(Property property) {
+        UserAccount currentUser = securityUtil.getLoggedInUser();
+        
+        if (currentUser == null) {
+            throw new AccessDeniedException("User is not authenticated");
+        }
+        
+        if (!"HOST".equals(currentUser.getRole().getName())) {
+            throw new AccessDeniedException("Only HOST users can manage property amenities");
+        }
+        
+        if (!property.getHost().getId().equals(currentUser.getId())) {
+            throw new AccessDeniedException("You can only manage amenities for your own properties");
+        }
+    }
 
     @Override
     @Transactional
     public void addAmenityToProperty(AmenityRequest amenityRequest) {
-        List<Amenity> amenities = amenityRepository.findAllById(amenityRequest.getIds());
         Property property = propertyRepository.findById(amenityRequest.getIdProperty())
                 .orElseThrow(()-> new DataNotFoundException("Property not found"));
+        
+        // Check ownership
+        checkHostOwnership(property);
+        
+        List<Amenity> amenities = amenityRepository.findAllById(amenityRequest.getIds());
         try {
             amenities.forEach(amenity -> property.getAmenities().add(amenity));
             propertyRepository.save(property);
@@ -51,6 +78,9 @@ public class AmenityServiceImp implements AmenityService {
     public void updateAmenityOfProperty(AmenityRequest amenityRequest) {
         Property property = propertyRepository.findById(amenityRequest.getIdProperty())
                 .orElseThrow(()-> new DataNotFoundException("Property not found"));
+        
+        // Check ownership
+        checkHostOwnership(property);
 
         Set<Integer> targetAmenityIds = Set.copyOf(amenityRequest.getIds());
         Set<Integer> existingAmenityIds = property.getAmenities().stream()

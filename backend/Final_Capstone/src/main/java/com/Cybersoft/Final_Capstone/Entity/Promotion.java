@@ -49,6 +49,10 @@ public class Promotion {
     @JoinColumn(name = "id_status", nullable = false)
     private Status status;
 
+    @Version
+    @Column(name = "version", nullable = false)
+    private Integer version = 0; // Optimistic locking để tránh race condition khi increment timesUsed
+
     @CreationTimestamp
     private LocalDateTime createdAt;
     @UpdateTimestamp

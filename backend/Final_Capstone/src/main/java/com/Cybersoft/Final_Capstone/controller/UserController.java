@@ -12,6 +12,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Map;
+
 /**
  * User Controller
  * Handles user profile and account management for authenticated users
@@ -26,14 +28,13 @@ public class UserController {
     private final SecurityUtil securityUtil;
 
     /**
-     * Get current user's profile
+     * Get current user's ID, username and role
      * GET /users/me
      * 
-     * Returns basic profile information with role-specific statistics
-     * - GUEST: bookings count, favorites count, promotions count
-     * - HOST: all GUEST info + hosted properties, earnings, ratings
-     * 
-     * @return UserProfileDTO with user information and statistics
+     * Returns authenticated user's ID, username and role
+     * Use /users/me/details for full profile information
+     *
+     * @return Object with id, username and role
      */
     @GetMapping("/me")
     @PreAuthorize("hasAnyRole('GUEST', 'HOST', 'ADMIN')")
@@ -51,20 +52,29 @@ public class UserController {
                 );
             }
 
-            UserProfileDTO profile = userService.getMyProfile(userId);
+            // Get username and role
+            String username = securityUtil.getLoggedInUser().getUsername();
+            String role = securityUtil.getLoggedInUser().getRole().getName();
+
+            // Return id, username and role
+            Map<String, Object> data = Map.of(
+                "id", userId,
+                "username", username,
+                "role", role
+            );
 
             return ResponseEntity.ok(
                     new BaseResponse(
                             HttpStatus.OK.value(),
-                            "Profile retrieved successfully",
-                            profile
+                            "User info retrieved successfully",
+                            data
                     )
             );
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(
                     new BaseResponse(
                             HttpStatus.INTERNAL_SERVER_ERROR.value(),
-                            "Error retrieving profile: " + e.getMessage(),
+                            "Error retrieving user info: " + e.getMessage(),
                             null
                     )
             );
@@ -75,9 +85,11 @@ public class UserController {
      * Get current user's detailed profile
      * GET /users/me/details
      * 
-     * Returns basic profile information (same as /me endpoint)
+     * Returns complete profile information with role-specific statistics
+     * - GUEST: bookings count, favorites count, promotions count
+     * - HOST: all GUEST info + hosted properties, earnings, ratings
      *
-     * @return UserProfileDTO with user information and statistics
+     * @return UserProfileDTO with full user information and statistics
      */
     @GetMapping("/me/details")
     @PreAuthorize("hasAnyRole('GUEST', 'HOST', 'ADMIN')")

@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Booking Test - PayOS Integration</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 40px auto;
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        .subtitle {
+            color: #666;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        input, select, textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        button {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            margin-top: 10px;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        .result {
+            margin-top: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            display: none;
+        }
+
+        .result.show {
+            display: block;
+        }
+
+        .result.success {
+            background: #d4edda;
+            border: 2px solid #c3e6cb;
+            color: #155724;
+        }
+
+        .result.error {
+            background: #f8d7da;
+            border: 2px solid #f5c6cb;
+            color: #721c24;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .loading.show {
+            display: block;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .payment-link {
+            margin-top: 15px;
+            padding: 15px;
+            background: #fff;
+            border: 2px dashed #667eea;
+            border-radius: 8px;
+            word-break: break-all;
+        }
+
+        .payment-link a {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .payment-link a:hover {
+            text-decoration: underline;
+        }
+
+        .info-box {
+            background: #e7f3ff;
+            border-left: 4px solid #2196F3;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+        }
+
+        .info-box p {
+            margin: 5px 0;
+            font-size: 13px;
+            color: #0d47a1;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🏨 Booking Test</h1>
+        <p class="subtitle">Test PayOS Payment Integration</p>
+
+        <div class="info-box">
+            <p><strong>ℹ️ Hướng dẫn:</strong></p>
+            <p>1. Nhập JWT Token vào header Authorization</p>
+            <p>2. Điền thông tin booking</p>
+            <p>3. Click "Create Booking & Payment" để tạo thanh toán</p>
+        </div>
+
+        <form id="bookingForm">
+            <div class="form-group">
+                <label for="token">JWT Token *</label>
+                <input type="text" id="token" placeholder="Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." required>
+            </div>
+
+            <div class="form-group">
+                <label for="propertyId">Property ID *</label>
+                <input type="number" id="propertyId" value="1" required>
+            </div>
+
+            <div class="row">
+                <div class="form-group">
+                    <label for="checkIn">Check-in Date *</label>
+                    <input type="date" id="checkIn" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="checkOut">Check-out Date *</label>
+                    <input type="date" id="checkOut" required>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="form-group">
+                    <label for="numAdults">Adults</label>
+                    <input type="number" id="numAdults" value="2" min="1">
+                </div>
+
+                <div class="form-group">
+                    <label for="numChildren">Children</label>
+                    <input type="number" id="numChildren" value="0" min="0">
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="form-group">
+                    <label for="numTeenager">Teenagers</label>
+                    <input type="number" id="numTeenager" value="0" min="0">
+                </div>
+
+                <div class="form-group">
+                    <label for="numInfant">Infants</label>
+                    <input type="number" id="numInfant" value="0" min="0">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="notes">Special Requests</label>
+                <textarea id="notes" rows="3" placeholder="Any special requests..."></textarea>
+            </div>
+
+            <button type="submit">🚀 Create Booking & Payment</button>
+        </form>
+
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p style="margin-top: 10px; color: #666;">Processing...</p>
+        </div>
+
+        <div class="result" id="result"></div>
+    </div>
+
+    <script>
+        // Set default dates
+        const today = new Date();
+        const tomorrow = new Date(today);
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        const dayAfter = new Date(today);
+        dayAfter.setDate(dayAfter.getDate() + 3);
+
+        document.getElementById('checkIn').value = tomorrow.toISOString().split('T')[0];
+        document.getElementById('checkOut').value = dayAfter.toISOString().split('T')[0];
+
+        document.getElementById('bookingForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const token = document.getElementById('token').value.trim();
+            const loading = document.getElementById('loading');
+            const result = document.getElementById('result');
+
+            // Show loading
+            loading.classList.add('show');
+            result.classList.remove('show');
+
+            const bookingData = {
+                propertyId: parseInt(document.getElementById('propertyId').value),
+                checkIn: document.getElementById('checkIn').value,
+                checkOut: document.getElementById('checkOut').value,
+                numAdults: parseInt(document.getElementById('numAdults').value),
+                numChildren: parseInt(document.getElementById('numChildren').value),
+                numTeenager: parseInt(document.getElementById('numTeenager').value),
+                numInfant: parseInt(document.getElementById('numInfant').value),
+                notes: document.getElementById('notes').value
+            };
+
+            try {
+                const response = await fetch('http://localhost:8080/bookings/create', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': token.startsWith('Bearer ') ? token : `Bearer ${token}`
+                    },
+                    body: JSON.stringify(bookingData)
+                });
+
+                const data = await response.json();
+
+                loading.classList.remove('show');
+                result.classList.add('show');
+
+                if (response.ok && data.code === 201) {
+                    result.classList.add('success');
+                    result.classList.remove('error');
+                    result.innerHTML = `
+                        <h3 style="margin-bottom: 15px;">✅ Booking Created Successfully!</h3>
+                        <p><strong>Booking ID:</strong> ${data.data.booking.id}</p>
+                        <p><strong>Status:</strong> ${data.data.booking.status}</p>
+                        <p><strong>Total Price:</strong> ${data.data.booking.totalPrice.toLocaleString('vi-VN')} VND</p>
+                        ${data.data.checkoutUrl ? `
+                            <div class="payment-link">
+                                <p style="margin-bottom: 10px;"><strong>🔗 Payment Link:</strong></p>
+                                <a href="${data.data.checkoutUrl}" target="_blank">Click here to pay</a>
+                                <p style="margin-top: 10px; font-size: 12px; color: #666;">
+                                    Link will open in new tab
+                                </p>
+                            </div>
+                        ` : ''}
+                    `;
+
+                    // Auto redirect after 3 seconds
+                    if (data.data.checkoutUrl) {
+                        setTimeout(() => {
+                            if (confirm('Redirect to payment page?')) {
+                                window.open(data.data.checkoutUrl, '_blank');
+                            }
+                        }, 2000);
+                    }
+                } else {
+                    result.classList.add('error');
+                    result.classList.remove('success');
+                    result.innerHTML = `
+                        <h3 style="margin-bottom: 15px;">❌ Error</h3>
+                        <p><strong>Code:</strong> ${data.code}</p>
+                        <p><strong>Message:</strong> ${data.message}</p>
+                        ${data.data ? `<pre style="margin-top: 10px; overflow-x: auto;">${JSON.stringify(data.data, null, 2)}</pre>` : ''}
+                    `;
+                }
+            } catch (error) {
+                loading.classList.remove('show');
+                result.classList.add('show');
+                result.classList.add('error');
+                result.classList.remove('success');
+                result.innerHTML = `
+                    <h3 style="margin-bottom: 15px;">❌ Network Error</h3>
+                    <p>${error.message}</p>
+                    <p style="margin-top: 10px; font-size: 12px;">
+                        Make sure the backend is running on http://localhost:8080
+                    </p>
+                `;
+            }
+        });
+    </script>
+</body>
+</html>
+

@@ -5,11 +5,14 @@ import com.Cybersoft.Final_Capstone.Entity.UserAccount;
 import com.Cybersoft.Final_Capstone.dto.PropertyDTO;
 import com.Cybersoft.Final_Capstone.exception.DataNotFoundException;
 import com.Cybersoft.Final_Capstone.mapper.PropertyMapper;
+import com.Cybersoft.Final_Capstone.payload.response.PageResponse;
 import com.Cybersoft.Final_Capstone.repository.FavouriteListRepository;
 import com.Cybersoft.Final_Capstone.repository.PropertyRepository;
 import com.Cybersoft.Final_Capstone.repository.UserAccountRepository;
 import com.Cybersoft.Final_Capstone.service.FavouriteListService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -41,6 +44,32 @@ public class FavouriteListServiceImp implements FavouriteListService {
         return properties.stream()
                 .map(PropertyMapper::toDTO)
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    public PageResponse<PropertyDTO> getAvailableFavoriteProperties(Integer userId, Pageable pageable) {
+        // Check if user exists
+        UserAccount user = userAccountRepository.findById(userId)
+                .orElseThrow(() -> new DataNotFoundException("User not found with ID: " + userId));
+
+        // Get available favorite properties with pagination
+        Page<Property> propertyPage = favouriteListRepository.findAvailableFavoritePropertiesByUserId(userId, pageable);
+
+        // Convert to DTO
+        List<PropertyDTO> propertyDTOs = propertyPage.getContent().stream()
+                .map(PropertyMapper::toDTO)
+                .toList();
+
+        return PageResponse.<PropertyDTO>builder()
+                .content(propertyDTOs)
+                .currentPage(propertyPage.getNumber())
+                .pageSize(propertyPage.getSize())
+                .totalElements(propertyPage.getTotalElements())
+                .totalPages(propertyPage.getTotalPages())
+                .first(propertyPage.isFirst())
+                .last(propertyPage.isLast())
+                .empty(propertyPage.isEmpty())
+                .build();
     }
 
 

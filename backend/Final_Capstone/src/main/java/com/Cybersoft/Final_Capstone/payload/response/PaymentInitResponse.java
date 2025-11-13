@@ -5,17 +5,23 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+
+/**
+ * Response DTO for payment initialization
+ * Contains payment URL and transaction details
+ * Note: Promotion discount is already included in the amount
+ */
 @Data
-@Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@Builder
 public class PaymentInitResponse {
+    private Long transactionId;
     private String orderId;
-    private String requestId;
-    private String payUrl;
-    private String qrCodeUrl;
-    private String deeplink;
-    private Long amount;
-    private String message;
+    private String payUrl; // URL to redirect user for payment
+    private BigDecimal amount; // Amount to pay (already includes any promotion discount from booking)
+    private String paymentMethod;
+    private LocalDateTime expiresAt; // Payment link expiration time
 }
-

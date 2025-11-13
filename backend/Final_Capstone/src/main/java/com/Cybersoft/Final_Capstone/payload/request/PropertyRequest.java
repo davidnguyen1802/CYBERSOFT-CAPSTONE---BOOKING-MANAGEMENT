@@ -9,7 +9,7 @@ import java.util.List;
 
 @Data
 public class PropertyRequest {
-    private Integer hostId; // Optional: If provided, will override the authenticated user
+    // hostId is automatically determined from the authenticated user (must have role HOST)
     private String fullAddress;
     private String propertyName;
     private BigDecimal pricePerNight;

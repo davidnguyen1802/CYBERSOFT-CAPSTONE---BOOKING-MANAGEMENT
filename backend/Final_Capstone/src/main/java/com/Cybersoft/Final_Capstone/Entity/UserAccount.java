@@ -34,7 +34,9 @@ public class UserAccount implements UserDetails, OAuth2User {
     @Column(nullable = false, unique = true)
     private String email;
 
+    @Column(unique = true)
     private String phone;
+
     private String address;
     
     private String avatar;
@@ -93,19 +95,6 @@ public class UserAccount implements UserDetails, OAuth2User {
         // Return the actual username field for display purposes
         return username;
     }
-    
-    /**
-     * Get the subject for authentication (phone or email)
-     * This is used by JWT token generation and authentication
-     */
-    public String getAuthenticationSubject() {
-        if (phone != null && !phone.isEmpty()) {
-            return phone;
-        } else if (email != null && !email.isEmpty()) {
-            return email;
-        }
-        return username; // Fallback to username if no phone/email
-    }
 
     @Override
     public <A> A getAttribute(String name) {
@@ -116,6 +105,8 @@ public class UserAccount implements UserDetails, OAuth2User {
     public Map<String, Object> getAttributes() {
         return Map.of();
     }
+
+
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {

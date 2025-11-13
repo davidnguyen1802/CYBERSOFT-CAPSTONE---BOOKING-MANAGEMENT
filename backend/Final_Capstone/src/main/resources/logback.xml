@@ -36,12 +36,12 @@
     </appender>
 
     <!-- Authentication and Security Logger -->
-    <logger name="com.Cybersoft.Final_Capstone.filter.AuthorizationFilter" level="DEBUG" additivity="false">
+    <logger name="com.Cybersoft.Final_Capstone.filter.JwtTokenFilter" level="DEBUG" additivity="false">
         <appender-ref ref="STDOUT"/>
         <appender-ref ref="SAVE-TO-FILE"/>
     </logger>
 
-    <logger name="com.Cybersoft.Final_Capstone.util.JWTHelper" level="DEBUG" additivity="false">
+    <logger name="com.Cybersoft.Final_Capstone.components.JwtTokenUtil" level="DEBUG" additivity="false">
         <appender-ref ref="STDOUT"/>
         <appender-ref ref="SAVE-TO-FILE"/>
     </logger>

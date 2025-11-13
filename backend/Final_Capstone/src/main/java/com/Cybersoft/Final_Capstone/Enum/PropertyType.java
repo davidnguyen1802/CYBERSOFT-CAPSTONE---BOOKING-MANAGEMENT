@@ -4,7 +4,7 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
 
 public enum PropertyType {
-    APARTMENT, HOUSE, HOTEL, VILLA;
+    APARTMENT, HOUSE, HOTEL;
 
     @JsonCreator
     public static PropertyType fromValue(int value) {

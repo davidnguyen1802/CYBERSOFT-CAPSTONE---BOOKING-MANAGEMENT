@@ -1,6 +1,7 @@
 package com.Cybersoft.Final_Capstone.payload.response;
 
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
@@ -11,6 +12,7 @@ import java.util.List;
  * Contains pagination metadata along with the actual data list.
  */
 @Data
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
 public class PageResponse<T> {

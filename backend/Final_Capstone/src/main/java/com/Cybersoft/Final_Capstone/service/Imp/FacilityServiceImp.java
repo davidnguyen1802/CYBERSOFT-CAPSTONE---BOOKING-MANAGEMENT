@@ -2,7 +2,8 @@ package com.Cybersoft.Final_Capstone.service.Imp;
 
 import com.Cybersoft.Final_Capstone.Entity.Facility;
 import com.Cybersoft.Final_Capstone.Entity.Property;
-import com.Cybersoft.Final_Capstone.Entity.Status;
+import com.Cybersoft.Final_Capstone.Entity.UserAccount;
+import com.Cybersoft.Final_Capstone.components.SecurityUtil;
 import com.Cybersoft.Final_Capstone.dto.FacilityDTO;
 import com.Cybersoft.Final_Capstone.exception.DataNotFoundException;
 import com.Cybersoft.Final_Capstone.mapper.FacilityMapper;
@@ -15,6 +16,7 @@ import com.Cybersoft.Final_Capstone.service.FileStorageService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 
 import java.util.HashSet;
@@ -32,6 +34,28 @@ public class FacilityServiceImp implements FacilityService {
 
     @Autowired
     private FileStorageService fileStorageService;
+    
+    @Autowired
+    private SecurityUtil securityUtil;
+    
+    /**
+     * Check if current HOST user owns the property
+     */
+    private void checkHostOwnership(Property property) {
+        UserAccount currentUser = securityUtil.getLoggedInUser();
+        
+        if (currentUser == null) {
+            throw new AccessDeniedException("User is not authenticated");
+        }
+        
+        if (!"HOST".equals(currentUser.getRole().getName())) {
+            throw new AccessDeniedException("Only HOST users can manage property facilities");
+        }
+        
+        if (!property.getHost().getId().equals(currentUser.getId())) {
+            throw new AccessDeniedException("You can only manage facilities for your own properties");
+        }
+    }
 
     @Override
     @Transactional
@@ -42,6 +66,9 @@ public class FacilityServiceImp implements FacilityService {
 
         Property property = propertyRepository.findById(facilityRequest.getPropertyId())
                 .orElseThrow(() -> new DataNotFoundException("Property not found"));
+        
+        // Check ownership
+        checkHostOwnership(property);
 
         List<Facility> facilities = facilityRepository.findAllById(facilityRequest.getIds());
 
@@ -59,6 +86,9 @@ public class FacilityServiceImp implements FacilityService {
     public void updateFacilityOfProperty(FacilityRequest facilityRequest) {
         Property property = propertyRepository.findById(facilityRequest.getPropertyId())
                 .orElseThrow(() -> new DataNotFoundException("Property not found"));
+        
+        // Check ownership
+        checkHostOwnership(property);
 
         Set<Integer> targetIds = Set.copyOf(facilityRequest.getIds());
         Set<Integer> existingIds = property.getFacilities().stream()

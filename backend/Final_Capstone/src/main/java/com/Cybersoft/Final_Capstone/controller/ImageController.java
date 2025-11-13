@@ -7,6 +7,7 @@ import com.Cybersoft.Final_Capstone.service.Imp.ImageServiceImp;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
 // import org.springframework.web.multipart.MultipartFile;
 
 @RestController
@@ -16,15 +17,8 @@ public class ImageController {
     @Autowired
     private ImageServiceImp imageService;
 
-    @PostMapping("/property")
-    public ResponseEntity<?> addImageToProperty(@ModelAttribute ImageRequest request) {
-        imageService.addImageToProperty(request);
-        BaseResponse response = new BaseResponse();
-        response.setCode(200);
-        response.setMessage("Add images to property successfully");
-        response.setData(null);
-        return ResponseEntity.ok(response);
-    }
+    // Note: Use POST /property/complete to add images when creating a property
+    // This controller is for managing images after property creation
 
     @DeleteMapping("/property")
     public ResponseEntity<?> removeImageOfProperty(@RequestBody ImageRequest request) {

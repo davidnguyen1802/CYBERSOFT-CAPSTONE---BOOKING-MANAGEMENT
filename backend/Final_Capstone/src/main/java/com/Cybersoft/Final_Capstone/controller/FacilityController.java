@@ -7,6 +7,7 @@ import com.Cybersoft.Final_Capstone.payload.response.BaseResponse;
 import com.Cybersoft.Final_Capstone.service.Imp.FacilityServiceImp;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -19,6 +20,7 @@ public class FacilityController {
     private FacilityServiceImp facilityService;
 
     @PostMapping
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> insertFacility(@RequestBody FacilityInsertRequest request) {
         facilityService.insertFacility(request);
         BaseResponse response = new BaseResponse();
@@ -29,6 +31,7 @@ public class FacilityController {
     }
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'HOST')")
     public ResponseEntity<?> getAllFacilities() {
         List<FacilityDTO> dtos = facilityService.getAllFacilities();
         BaseResponse response = new BaseResponse();
@@ -48,17 +51,11 @@ public class FacilityController {
         return ResponseEntity.ok(response);
     }
 
-    @PostMapping("/property")
-    public ResponseEntity<?> addFacilityToProperty(@RequestBody FacilityRequest request) {
-        facilityService.addFacilityToProperty(request);
-        BaseResponse response = new BaseResponse();
-        response.setCode(200);
-        response.setMessage("Add facilities to property successfully");
-        response.setData(null);
-        return ResponseEntity.ok(response);
-    }
+    // Note: Use POST /property/complete to add facilities when creating a property
+    // Below endpoint is for updating facilities after property creation
 
     @PutMapping("/property")
+    @PreAuthorize("hasRole('HOST')")
     public ResponseEntity<?> updateFacilityOfProperty(@RequestBody FacilityRequest request) {
         facilityService.updateFacilityOfProperty(request);
         BaseResponse response = new BaseResponse();
@@ -69,6 +66,7 @@ public class FacilityController {
     }
 
     @DeleteMapping
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> deleteFacility(@RequestBody FacilityRequest request) {
         facilityService.deleteFacility(request);
         BaseResponse response = new BaseResponse();

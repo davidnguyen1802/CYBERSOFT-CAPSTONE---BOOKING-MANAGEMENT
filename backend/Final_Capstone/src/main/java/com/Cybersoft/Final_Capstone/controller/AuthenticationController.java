@@ -1,18 +1,15 @@
 package com.Cybersoft.Final_Capstone.controller;
 
-import com.Cybersoft.Final_Capstone.Entity.Token;
 import com.Cybersoft.Final_Capstone.Entity.UserAccount;
 import com.Cybersoft.Final_Capstone.components.JwtTokenUtil;
-import com.Cybersoft.Final_Capstone.components.SecurityUtil;
 import com.Cybersoft.Final_Capstone.payload.request.SignInRequest;
 import com.Cybersoft.Final_Capstone.payload.request.SignUpRequest;
-import com.Cybersoft.Final_Capstone.payload.response.AuthResponse;
 import com.Cybersoft.Final_Capstone.payload.response.BaseResponse;
+import com.Cybersoft.Final_Capstone.payload.response.RefreshTokenResponse;
 import com.Cybersoft.Final_Capstone.payload.response.ResponseObject;
 import com.Cybersoft.Final_Capstone.service.AuthService;
 import com.Cybersoft.Final_Capstone.service.AuthenticationService;
 import com.Cybersoft.Final_Capstone.service.TokenService;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
@@ -22,7 +19,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -50,8 +46,9 @@ public class AuthenticationController {
     private AuthenticationService authenticationService;
 
     private final TokenService tokenService;
-    private final SecurityUtil securityUtil;
     private final JwtTokenUtil jwtTokenUtil;
+    
+    private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(AuthenticationController.class);
 
     @PostMapping("/login")
     public ResponseEntity<ResponseObject> login(
@@ -59,51 +56,69 @@ public class AuthenticationController {
             HttpServletRequest request,
             HttpServletResponse response
     ) throws Exception {
-        // Call login service for traditional login
+        // ========== STEP 1: Validate X-Device-Id header (REQUIRED) ==========
+        String deviceId = extractDeviceId(request);
+        if (deviceId == null) {
+            logger.warn("⚠️ [LOGIN] Missing or invalid X-Device-Id header");
+            return ResponseEntity.status(428).body(
+                    ResponseObject.builder()
+                            .message("X-Device-Id header is required. Generate UUID v4 on client.")
+                            .status(HttpStatus.valueOf(428))
+                            .build()
+            );
+        }
+
+        // ========== STEP 2: Authenticate user ==========
         String accessToken = authService.login(signInRequest);
-
-        // Get user details
-        String userAgent = request.getHeader("User-Agent");
         UserAccount userDetail = authService.getUserDetailsFromToken(accessToken);
+        boolean rememberMe = signInRequest.getRememberMe() != null ? signInRequest.getRememberMe() : false;
 
-        // Generate refresh token
-        String refreshToken = jwtTokenUtil.generateRefreshToken(userDetail);
+        // ========== STEP 3: Generate and store refresh token ==========
+        String refreshToken = jwtTokenUtil.generateRefreshToken(userDetail, rememberMe, null);
+        tokenService.addRefreshToken(userDetail, refreshToken, rememberMe, request);
 
-        // Revoke previous refresh tokens for this user
-        tokenService.revokeAllUserRefreshTokens(userDetail);
-
-        // Save tokens to database
-        tokenService.addAccessToken(userDetail, accessToken, isMobileDevice(userAgent));
-        tokenService.addRefreshToken(userDetail, refreshToken);
-
-        // Set refresh token as secure HttpOnly cookie
-        ResponseCookie refreshCookie = ResponseCookie.from("refresh_token", refreshToken)
+        // ========== STEP 4: Set refresh token cookie ==========
+        ResponseCookie.ResponseCookieBuilder cookieBuilder = ResponseCookie.from("refresh_token", refreshToken)
                 .httpOnly(true)
                 .secure(false)  // Set to false for local development (http://), true in production with HTTPS
-                .sameSite("Lax")  // Changed to Lax for local development, use Strict in production
-                .path("/")
-                .maxAge(Duration.ofMillis(jwtTokenUtil.getRefreshExpirationMs()))
-                .build();
+                .sameSite("Lax")
+                .path("/");
+
+        if (rememberMe) {
+            cookieBuilder.maxAge(Duration.ofMillis(jwtTokenUtil.getRefreshExpirationMs(true)));
+        }
+
+        ResponseCookie refreshCookie = cookieBuilder.build();
         response.addHeader("Set-Cookie", refreshCookie.toString());
 
-        // Create response with access token (NOT in cookie)
-        AuthResponse authResponse = AuthResponse.builder()
-                .message("Login Successfully.")
-                .token(accessToken)
-                .tokenType("Bearer")
-                .refreshToken(null)  // Don't expose refresh token in response body
-                .username(userDetail.getUsername())
-                .roles(userDetail.getAuthorities().stream().map(GrantedAuthority::getAuthority).toList())
-                .id(userDetail.getId())
-                .build();
-
+        // ========== STEP 5: Build response (return access token directly as string) ==========
         return ResponseEntity.ok().body(
                 ResponseObject.builder()
                         .message("Login successfully")
-                        .data(authResponse)
+                        .data(accessToken)  // Return access token directly (same as signup)
                         .status(HttpStatus.OK)
                         .build()
         );
+    }
+    
+    /**
+     * Extract and validate X-Device-Id header
+     * Returns null if missing or invalid format
+     */
+    private String extractDeviceId(HttpServletRequest request) {
+        String deviceId = request.getHeader("X-Device-Id");
+        
+        if (deviceId == null || deviceId.trim().isEmpty() || "Unknown".equalsIgnoreCase(deviceId)) {
+            return null;
+        }
+        
+        // Validate UUID v4 format (strict)
+        if (!deviceId.matches("(?i)^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$")) {
+            logger.warn("⚠️ Invalid X-Device-Id format: {}", deviceId);
+            return null;
+        }
+        
+        return deviceId.trim();
     }
 
     /**
@@ -112,6 +127,17 @@ public class AuthenticationController {
      *
      * Reads refresh token from HttpOnly cookie, validates it, and issues new tokens
      * Implements token rotation for security
+     *
+     * NEW: Requires X-Device-Id header (strict validation)
+     *
+     * Status Codes:
+     * - 200 OK: Token refreshed successfully (returns new access token only)
+     * - 400 BAD_REQUEST: X-Device-Id header missing or invalid UUID v4
+     * - 449 RETRY_WITH: Refresh token missing (client didn't send cookie)
+     * - 498 INVALID_TOKEN: Invalid JWT signature or token not found
+     * - 499 TOKEN_REVOKED: Token revoked (logout or security issue)
+     * - 419 AUTHENTICATION_TIMEOUT: Token expired (need to re-login)
+     * - 503 SERVICE_UNAVAILABLE: Temporary server error
      */
     @PostMapping("/refresh")
     public ResponseEntity<?> refresh(
@@ -120,63 +146,108 @@ public class AuthenticationController {
             HttpServletResponse response
     ) {
         try {
+            // Case 1: Missing refresh token → 449 RETRY_WITH
             if (refreshToken == null || refreshToken.isEmpty()) {
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(
+                return ResponseEntity.status(449).body(
                         ResponseObject.builder()
-                                .message("Refresh token missing")
-                                .status(HttpStatus.UNAUTHORIZED)
+                                .message("Token missing")
+                                .status(HttpStatus.valueOf(449))
+                                .build()
+                );
+            }
+            
+            // Case 2: Validate X-Device-Id header (REQUIRED for refresh)
+            String deviceId = extractDeviceId(request);
+            if (deviceId == null) {
+                logger.warn("⚠️ [REFRESH] Missing or invalid X-Device-Id header");
+                return ResponseEntity.status(428).body(
+                        ResponseObject.builder()
+                                .message("X-Device-Id header is required. Generate UUID v4 on client.")
+                                .status(HttpStatus.valueOf(428))
                                 .build()
                 );
             }
 
-            // Refresh and rotate tokens
-            Token newRefreshTokenEntity = tokenService.refreshToken(refreshToken);
-            UserAccount user = newRefreshTokenEntity.getUser();
+            // Refresh and rotate tokens (pass request for device metadata update)
+            RefreshTokenResponse refreshResponse = tokenService.refreshToken(refreshToken, request);
+            UserAccount user = refreshResponse.getTokenEntity().getUser();
+            boolean rememberMe = refreshResponse.getTokenEntity().isRememberMe();
 
-            // Generate new access token
+            // Generate new access token (stateless - không lưu DB)
             String newAccessToken = jwtTokenUtil.generateAccessToken(user);
-            String userAgent = request.getHeader("User-Agent");
-            tokenService.addAccessToken(user, newAccessToken, isMobileDevice(userAgent));
 
-            // Set new refresh token cookie
-            ResponseCookie newRefreshCookie = ResponseCookie.from("refresh_token", newRefreshTokenEntity.getToken())
+            // Set new refresh token cookie with rememberMe-aware expiry
+            ResponseCookie.ResponseCookieBuilder cookieBuilder = ResponseCookie.from("refresh_token", refreshResponse.getJwtToken())
                     .httpOnly(true)
                     .secure(false)  // Set to false for local development (http://), true in production with HTTPS
                     .sameSite("Lax")  // Changed to Lax for local development, use Strict in production
-                    .path("/")
-                    .maxAge(Duration.ofMillis(jwtTokenUtil.getRefreshExpirationMs()))
-                    .build();
+                    .path("/");
+
+            // Only set maxAge if rememberMe is true (persistent cookie)
+            // If rememberMe is false, omit maxAge to make it a session cookie
+            if (rememberMe) {
+                cookieBuilder.maxAge(Duration.ofMillis(jwtTokenUtil.getRefreshExpirationMs(true)));
+            }
+
+            ResponseCookie newRefreshCookie = cookieBuilder.build();
             response.addHeader("Set-Cookie", newRefreshCookie.toString());
 
-            // Return new access token
-            AuthResponse authResponse = AuthResponse.builder()
-                    .message("Token refreshed successfully")
-                    .token(newAccessToken)
-                    .tokenType("Bearer")
-                    .username(user.getUsername())
-                    .roles(user.getAuthorities().stream().map(GrantedAuthority::getAuthority).toList())
-                    .id(user.getId())
-                    .build();
-
+            // Return only access token → 200 OK
             return ResponseEntity.ok().body(
                     ResponseObject.builder()
-                            .message("Token refreshed successfully")
-                            .data(authResponse)
+                            .message("Token refreshed")
+                            .data(newAccessToken)
                             .status(HttpStatus.OK)
                             .build()
             );
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(
+
+        } catch (com.Cybersoft.Final_Capstone.exception.ExpiredTokenException e) {
+            // Case 2: Token expired → 419 AUTHENTICATION_TIMEOUT
+            if (e.getMessage().contains("expired")) {
+                return ResponseEntity.status(419).body(
+                        ResponseObject.builder()
+                                .message("Token expired")
+                                .status(HttpStatus.valueOf(419))
+                                .build()
+                );
+            }
+
+            // Case 3: Token revoked (logout/security) → 499 TOKEN_REVOKED
+            if (e.getMessage().contains("revoked") || e.getMessage().contains("reuse attack")) {
+                return ResponseEntity.status(499).body(
+                        ResponseObject.builder()
+                                .message("Token revoked")
+                                .status(HttpStatus.valueOf(499))
+                                .build()
+                );
+            }
+
+            // Case 4: Invalid signature or other JWT errors → 498 INVALID_TOKEN
+            return ResponseEntity.status(498).body(
                     ResponseObject.builder()
-                            .message("Refresh token invalid or expired: " + e.getMessage())
-                            .status(HttpStatus.UNAUTHORIZED)
+                            .message("Invalid token")
+                            .status(HttpStatus.valueOf(498))
+                            .build()
+            );
+
+        } catch (com.Cybersoft.Final_Capstone.exception.DataNotFoundException e) {
+            // Case 5: Token not found in DB → 498 INVALID_TOKEN
+            return ResponseEntity.status(498).body(
+                    ResponseObject.builder()
+                            .message("Token not found")
+                            .status(HttpStatus.valueOf(498))
+                            .build()
+            );
+
+        } catch (Exception e) {
+            // Case 6: Unknown error → 503 SERVICE_UNAVAILABLE
+            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(
+                    ResponseObject.builder()
+                            .message("Service temporarily unavailable")
+                            .status(HttpStatus.SERVICE_UNAVAILABLE)
                             .build()
             );
         }
-    }
-
-    private boolean isMobileDevice(String userAgent) {
-        return userAgent != null && userAgent.toLowerCase().contains("mobile");
     }
 
     @PostMapping(value = "/signup", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -186,44 +257,53 @@ public class AuthenticationController {
             HttpServletRequest request,
             HttpServletResponse response) throws Exception {
 
-        // Create user account (includes validation, avatar saving, etc.)
+        // ========== STEP 1: Validate X-Device-Id header (REQUIRED) ==========
+        String deviceId = extractDeviceId(request);
+        if (deviceId == null) {
+            logger.warn("⚠️ [SIGNUP] Missing or invalid X-Device-Id header");
+            return ResponseEntity.status(428).body(
+                    ResponseObject.builder()
+                            .message("X-Device-Id header is required. Generate UUID v4 on client.")
+                            .status(HttpStatus.valueOf(428))
+                            .build()
+            );
+        }
+
+        // ========== STEP 2: Create user account ==========
         UserAccount newUser = authService.signUp(signUpRequest, avatar);
 
-        // Generate tokens
+        // Get rememberMe flag from request (default false if null)
+        boolean rememberMe = signUpRequest.getRememberMe() != null ? signUpRequest.getRememberMe() : false;
+
+        // ========== STEP 3: Generate tokens with rememberMe flag ==========
         String accessToken = jwtTokenUtil.generateAccessToken(newUser);
-        String refreshToken = jwtTokenUtil.generateRefreshToken(newUser);
+        String refreshToken = jwtTokenUtil.generateRefreshToken(newUser, rememberMe, null);
 
-        // Get user agent for device detection
-        String userAgent = request.getHeader("User-Agent");
+        // NOTE: Access Token is stateless - KHÔNG lưu DB
+        // Chỉ lưu Refresh Token with device tracking
+        tokenService.addRefreshToken(newUser, refreshToken, rememberMe, request);
 
-        // Save tokens to database
-        tokenService.addAccessToken(newUser, accessToken, isMobileDevice(userAgent));
-        tokenService.addRefreshToken(newUser, refreshToken);
-
-        // Set refresh token as secure HttpOnly cookie
-        ResponseCookie refreshCookie = ResponseCookie.from("refresh_token", refreshToken)
+        // ========== STEP 4: Set refresh token cookie ==========
+        ResponseCookie.ResponseCookieBuilder cookieBuilder = ResponseCookie.from("refresh_token", refreshToken)
                 .httpOnly(true)
                 .secure(false)  // Set to false for local development (http://), true in production with HTTPS
                 .sameSite("Lax")  // Changed to Lax for local development, use Strict in production
-                .path("/")
-                .maxAge(Duration.ofMillis(jwtTokenUtil.getRefreshExpirationMs()))
-                .build();
+                .path("/");
+
+        // Only set maxAge if rememberMe is true (persistent cookie)
+        // If rememberMe is false, omit maxAge to make it a session cookie
+        if (rememberMe) {
+            cookieBuilder.maxAge(Duration.ofMillis(jwtTokenUtil.getRefreshExpirationMs(true)));
+        }
+
+        ResponseCookie refreshCookie = cookieBuilder.build();
         response.addHeader("Set-Cookie", refreshCookie.toString());
 
-        // Create response
-        AuthResponse authResponse = AuthResponse.builder()
-                .message("Sign up Successfully.")
-                .token(accessToken)
-                .tokenType("Bearer")
-                .username(newUser.getUsername())
-                .roles(newUser.getAuthorities().stream().map(GrantedAuthority::getAuthority).toList())
-                .id(newUser.getId())
-                .build();
-
+        // ========== STEP 5: Return only access token ==========
         return ResponseEntity.ok().body(
                 ResponseObject.builder()
                         .message("Sign up successfully")
-                        .data(authResponse)
+                        .data(accessToken)
                         .status(HttpStatus.OK)
                         .build()
         );
@@ -236,73 +316,92 @@ public class AuthenticationController {
      * Returns the current authenticated user's info from Bearer token
      * NO cookie reading - only Authorization header
      */
-    @GetMapping("/me")
-    public ResponseEntity<?> getCurrentUser(
-            @RequestHeader(name = "Authorization", required = false) String authHeader
-    ) {
-        try {
-            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(
-                        ResponseObject.builder()
-                                .message("No authentication token found")
-                                .status(HttpStatus.UNAUTHORIZED)
-                                .build()
-                );
-            }
-
-            String token = authHeader.substring(7);
-
-            // Validate token
-            if (jwtTokenUtil.isTokenExpired(token)) {
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(
-                        ResponseObject.builder()
-                                .message("Access token expired. Please call /auth/refresh.")
-                                .status(HttpStatus.UNAUTHORIZED)
-                                .build()
-                );
-            }
-
-            Integer userId = jwtTokenUtil.getUserId(token);
-
-            if (userId == null) {
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(
-                        ResponseObject.builder()
-                                .message("Invalid token")
-                                .status(HttpStatus.UNAUTHORIZED)
-                                .build()
-                );
-            }
-
-            return ResponseEntity.ok().body(
-                    ResponseObject.builder()
-                            .message("User ID retrieved successfully")
-                            .data(userId)
-                            .status(HttpStatus.OK)
-                            .build()
-            );
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(
-                    ResponseObject.builder()
-                            .message("Invalid or expired token")
-                            .status(HttpStatus.UNAUTHORIZED)
-                            .build()
-            );
-        }
-    }
+//    @GetMapping("/me")
+//    public ResponseEntity<?> getCurrentUser(
+//            @RequestHeader(name = "Authorization", required = false) String authHeader
+//    ) {
+//        try {
+//            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+//                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(
+//                        ResponseObject.builder()
+//                                .message("No authentication token found")
+//                                .status(HttpStatus.UNAUTHORIZED)
+//                                .build()
+//                );
+//            }
+//
+//            String token = authHeader.substring(7);
+//
+//            // Validate token
+//            if (jwtTokenUtil.isTokenExpired(token)) {
+//                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(
+//                        ResponseObject.builder()
+//                                .message("Access token expired. Please call /auth/refresh.")
+//                                .status(HttpStatus.UNAUTHORIZED)
+//                                .build()
+//                );
+//            }
+//
+//            Integer userId = jwtTokenUtil.getUserId(token);
+//
+//            if (userId == null) {
+//                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(
+//                        ResponseObject.builder()
+//                                .message("Invalid token")
+//                                .status(HttpStatus.UNAUTHORIZED)
+//                                .build()
+//                );
+//            }
+//
+//            return ResponseEntity.ok().body(
+//                    ResponseObject.builder()
+//                            .message("User ID retrieved successfully")
+//                            .data(userId)
+//                            .status(HttpStatus.OK)
+//                            .build()
+//            );
+//        } catch (Exception e) {
+//            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(
+//                    ResponseObject.builder()
+//                            .message("Invalid or expired token")
+//                            .status(HttpStatus.UNAUTHORIZED)
+//                            .build()
+//            );
+//        }
+//    }
 
     /**
      * Sign out endpoint
      * POST /auth/logout
      *
-     * Revokes refresh token and clears the cookie
+     * Revokes refresh token for the current device and clears the cookie
+     * 
+     * ⭐ IMPORTANT CHANGES:
+     * - Now requires authentication (Authorization header)
+     * - Accepts X-Device-Id header for accurate device tracking
+     * - Revokes token for specific device only
      */
     @PostMapping("/logout")
     public ResponseEntity<ResponseObject> signOut(
+            @AuthenticationPrincipal UserAccount user,
             @CookieValue(name = "refresh_token", required = false) String refreshToken,
+            @RequestHeader(name = "X-Device-Id", required = false) String deviceId,
+            HttpServletRequest request,
             HttpServletResponse response) {
         try {
+            // Validate user is authenticated
+            if (user == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(
+                        ResponseObject.builder()
+                                .message("Authentication required")
+                                .status(HttpStatus.UNAUTHORIZED)
+                                .build()
+                );
+            }
+
             if (refreshToken != null && !refreshToken.isEmpty()) {
                 // Revoke refresh token in database
+                // The token service will use device_id if provided, otherwise User-Agent
                 tokenService.revokeToken(refreshToken);
             }
 
@@ -479,6 +578,18 @@ public class AuthenticationController {
                     .build();
         }
         
+        // ========== Validate X-Device-Id header (REQUIRED) ==========
+        String deviceId = extractDeviceId(request);
+        if (deviceId == null) {
+            logger.warn("⚠️ [SOCIAL_LOGIN] Missing or invalid X-Device-Id header");
+            String errorUrl = "http://localhost:4200/auth/callback?error=" + 
+                URLEncoder.encode("X-Device-Id header is required. Generate UUID v4 on client.", StandardCharsets.UTF_8) +
+                "&error_code=428";
+            return ResponseEntity.status(HttpStatus.FOUND)
+                    .location(URI.create(errorUrl))
+                    .build();
+        }
+        
         try {
             // Call the AuthService to get user info
             Map<String, Object> userInfo = authenticationService.authenticateAndFetchProfile(code, loginType);
@@ -537,43 +648,37 @@ public class AuthenticationController {
 
             // Perform social login to get authentication tokens
             String accessToken = authService.loginSocial(userLoginDTO);
-            String userAgent = request.getHeader("User-Agent");
             UserAccount userDetail = authService.getUserDetailsFromToken(accessToken);
 
-            // Generate refresh token
-            String refreshToken = jwtTokenUtil.generateRefreshToken(userDetail);
+            // Generate refresh token (no rememberMe for social login - default to false)
+            String refreshToken = jwtTokenUtil.generateRefreshToken(userDetail, false, null);
 
-            // Revoke previous refresh tokens
-            tokenService.revokeAllUserRefreshTokens(userDetail);
+            // NOTE: REMOVED revokeAllUserRefreshTokens() - Same bug as regular login!
+            // The 3-device limit logic in addRefreshToken() handles per-device token management
 
-            // Save tokens
-            tokenService.addAccessToken(userDetail, accessToken, isMobileDevice(userAgent));
-            tokenService.addRefreshToken(userDetail, refreshToken);
+            // NOTE: Access Token is stateless - KHÔNG lưu DB
+            // Chỉ lưu Refresh Token with device tracking
+            tokenService.addRefreshToken(userDetail, refreshToken, false, request);
 
-            // Set refresh token cookie
+            // Set refresh token cookie (session cookie - no maxAge since rememberMe = false)
             ResponseCookie refreshCookie = ResponseCookie.from("refresh_token", refreshToken)
                     .httpOnly(true)
                     .secure(false)  // Set to false for local development (http://), true in production with HTTPS
                     .sameSite("Lax")  // Changed to Lax for local development, use Strict in production
                     .path("/")
-                    .maxAge(Duration.ofMillis(jwtTokenUtil.getRefreshExpirationMs()))
+                    // No maxAge → session cookie for social login
                     .build();
             response.addHeader("Set-Cookie", refreshCookie.toString());
 
-            // Convert roles to JSON string
-            ObjectMapper objectMapper = new ObjectMapper();
-            String rolesJson = objectMapper.writeValueAsString(
-                userDetail.getAuthorities().stream()
-                    .map(GrantedAuthority::getAuthority)
-                    .toList()
-            );
+            // Get single role (user has only one role)
+            String role = userDetail.getRole().getName();
 
             // Build redirect URL to Angular frontend with auth data (only access token, not refresh)
             String frontendCallbackUrl = "http://localhost:4200/auth/callback?" +
                 "token=" + URLEncoder.encode(accessToken, StandardCharsets.UTF_8) +
                 "&id=" + userDetail.getId() +
                 "&username=" + URLEncoder.encode(userDetail.getUsername(), StandardCharsets.UTF_8) +
-                "&roles=" + URLEncoder.encode(rolesJson, StandardCharsets.UTF_8);
+                "&role=" + URLEncoder.encode(role, StandardCharsets.UTF_8); // Single role, not roles array
 
             // Redirect to Angular frontend
             return ResponseEntity.status(HttpStatus.FOUND)

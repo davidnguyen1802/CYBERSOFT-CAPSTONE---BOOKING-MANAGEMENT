@@ -70,12 +70,19 @@ public class AuthServiceImp implements AuthService {
     public UserAccount signUp(SignUpRequest signUpRequest, MultipartFile avatar) throws Exception {
         // Check if username already exists
         if (userAccountRepository.existsByUsername(signUpRequest.getUsername())) {
-            throw new DuplicateException("Username already exists");
+            throw new UsernameDuplicateException("Username already exists");
         }
 
         // Check if email already exists
         if (userAccountRepository.existsByEmail(signUpRequest.getEmail())) {
-            throw new EmailDuplicateException("Your email is existed");
+            throw new EmailDuplicateException("Email already exists");
+        }
+
+        // Check if phone already exists (if phone is provided)
+        if (signUpRequest.getPhone() != null && !signUpRequest.getPhone().trim().isEmpty()) {
+            if (userAccountRepository.existsByPhone(signUpRequest.getPhone())) {
+                throw new PhoneDuplicateException("Phone number already exists");
+            }
         }
 
         // Create new user account
@@ -259,9 +266,19 @@ public class AuthServiceImp implements AuthService {
 
     @Override
     public String login(SignInRequest signInRequest) throws Exception {
-        Optional<UserAccount> optionalUserAccount = Optional.empty();
-        optionalUserAccount = userAccountRepository.findByEmail(signInRequest.getUsernameOrEmail());
-        UserAccount existUser = optionalUserAccount.orElseThrow(() -> new DataNotFoundException("Invalid email user!"));
+        String usernameOrEmail = signInRequest.getUsernameOrEmail();
+        
+        // Try to find user by email first
+        Optional<UserAccount> optionalUserAccount = userAccountRepository.findByEmail(usernameOrEmail);
+        
+        // If not found by email, try username
+        if (optionalUserAccount.isEmpty()) {
+            optionalUserAccount = userAccountRepository.findByUsername(usernameOrEmail);
+        }
+        
+        // If still not found, throw exception
+        UserAccount existUser = optionalUserAccount.orElseThrow(() -> 
+            new DataNotFoundException("Invalid username or email!"));
 
         if(!passwordEncoder.matches(signInRequest.getPassword(), existUser.getPasswordHash())) {
             throw new InvalidPasswordException("Wrong Password !");
@@ -279,21 +296,54 @@ public class AuthServiceImp implements AuthService {
         if(jwtTokenUtil.isTokenExpired(token)) {
             throw new ExpiredTokenException("Token is expired");
         }
+
+        // Get userId from token claims (primary method)
+        Integer userId = jwtTokenUtil.getUserId(token);
+        if (userId != null) {
+            Optional<UserAccount> user = userAccountRepository.findById(userId);
+            if (user.isPresent()) {
+                return user.get();
+            }
+        }
+
+        // Fallback: Get subject from token (for backward compatibility)
         String subject = jwtTokenUtil.getSubject(token);
         Optional<UserAccount> user;
-        user = userAccountRepository.findByPhone(subject);
+
+        // Try to find by email first
+        user = userAccountRepository.findByEmail(subject);
         if(user.isEmpty()) {
-            user = userAccountRepository.findByEmail(subject);
+            // Then try username
+            user = userAccountRepository.findByUsername(subject);
         }
+
         return user.orElseThrow(() -> new Exception("User not found"));
     }
 
     @Override
     public UserAccount getUserDetailsFromRefreshToken(String refreshToken) throws Exception {
-        Token existingToken = tokenRepository.findByToken(refreshToken);
-        if (existingToken == null) {
-            throw new DataNotFoundException("Refresh token not found");
+        // Validate refresh token first
+        if (!jwtTokenUtil.validateRefreshToken(refreshToken)) {
+            throw new InvalidException("Invalid refresh token");
         }
+
+        // Get JTI from token
+        String jti = jwtTokenUtil.getJtiFromToken(refreshToken);
+
+        // Find token by JTI
+        Token existingToken = tokenRepository.findByJti(jti)
+                .orElseThrow(() -> new DataNotFoundException("Refresh token not found"));
+
+        // Check if token is revoked
+        if (existingToken.isRevoked()) {
+            throw new InvalidException("Refresh token has been revoked");
+        }
+
+        // Check if token is expired
+        if (existingToken.getExpiresAt().isBefore(java.time.Instant.now())) {
+            throw new ExpiredTokenException("Refresh token has expired");
+        }
+
         return existingToken.getUser();
     }
 
@@ -337,7 +387,7 @@ public class AuthServiceImp implements AuthService {
         else if (signInRequests.isFacebookAccountIdValid()) {
             optionalUser = userAccountRepository.findByFacebookAccountId(signInRequests.getFacebookAccountId());
 
-            // Tạo người dùng mới nếu không t��m thấy
+            // Tạo người dùng mới nếu không tìm thấy
             if (optionalUser.isEmpty()) {
                 // Generate unique username from email or Facebook account ID
                 String username = signInRequests.getEmail() != null && !signInRequests.getEmail().isEmpty()

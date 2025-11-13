@@ -1,30 +1,47 @@
 package com.Cybersoft.Final_Capstone.controller;
 
+import com.Cybersoft.Final_Capstone.dto.PropertyDTO;
 import com.Cybersoft.Final_Capstone.payload.response.BaseResponse;
+import com.Cybersoft.Final_Capstone.payload.response.PageResponse;
 import com.Cybersoft.Final_Capstone.service.FavouriteListService;
+import com.Cybersoft.Final_Capstone.util.PageableBuilder;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/user/favorites")
-public class FavouriteListController {
+public class  FavouriteListController {
 
     @Autowired
     private FavouriteListService favouriteListService;
 
     /**
-     * Get all available favorite properties for a user
+     * Get all available favorite properties for a user (paginated)
      * GET /user/favorites/{userId}/available
      */
     @GetMapping("/{userId}/available")
-    public ResponseEntity<?> getAvailableFavoriteProperties(@PathVariable Integer userId) {
+    public ResponseEntity<?> getAvailableFavoriteProperties(
+            @PathVariable Integer userId,
+            @RequestParam(required = false) Integer page,
+            @RequestParam(required = false) Integer size,
+            @RequestParam(required = false) String sortBy,
+            @RequestParam(required = false) String sortDirection) {
         BaseResponse response = new BaseResponse();
         try {
+            int p = (page != null && page >= 0) ? page : 0;
+            int s = (size != null && size > 0) ? size : 9;
+            String sb = sortBy != null ? sortBy : "id";
+            String sd = sortDirection != null ? sortDirection : "DESC";
+            Pageable pageable = PageableBuilder.buildPropertyPageable(p, s, sb, sd);
+
+            PageResponse<PropertyDTO> pageResponse = favouriteListService.getAvailableFavoriteProperties(userId, pageable);
+            
             response.setCode(200);
             response.setMessage("Get available favorite properties successfully");
-            response.setData(favouriteListService.getAvailableFavoriteProperties(userId));
+            response.setData(pageResponse);
             return ResponseEntity.ok(response);
         } catch (Exception e) {
             response.setCode(404);

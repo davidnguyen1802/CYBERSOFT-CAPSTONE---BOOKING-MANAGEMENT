@@ -26,6 +26,9 @@ public class UserPromotion {
     private LocalDateTime assignedAt;
     private LocalDateTime expiresAt;
 
+    @Column(nullable = false)
+    private Boolean isLocked = false; // Prevents concurrent use during pending payments
+
     @CreationTimestamp
     private LocalDateTime createdAt;
     @UpdateTimestamp
